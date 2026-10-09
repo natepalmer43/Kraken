@@ -1,29 +1,40 @@
 # Release the Tickets 🐙
 
 A small, fun web app for two friends splitting Seattle Kraken season tickets.
-Draft the games, trade them, keep the split fair, and count down to the next
-night at Climate Pledge.
+Decide who's going, keep the weekend games fair, see what each game is worth
+on the resale market, and count down to the next night at Climate Pledge.
 
 ## What it does
 
-- **Home** – countdown to the next home game, who's going, a fairness meter,
-  and a big *Release the Kraken* button (confetti, obviously).
+- **Home** – countdown to the next home game, who's going, each person's
+  weekend/weeknight count, a weekend-split meter, the games worth the most on
+  the resale market right now, and a big *Release the Kraken* button
+  (confetti, obviously).
 - **Schedule** – every 2026-27 home game grouped by month with opponent
-  badges, start times and a point value. Tap a game to claim it, mark it
-  "both of us", sell it, add a note, or adjust its value.
-- **Draft** – flip a coin for first pick, then snake-draft (A·B·B·A) the open
-  games. Auto-pick, undo, live score, and a fairness readout at the end.
-- **Ledger** – points per person, trade proposals with net swing, trade
-  history, and achievements (Rivalry Hoarder, Weekend Warrior, Tuesday Hero…).
+  badges, start times, a Weekend/Weeknight tag and the average resale price.
+  Filter by unassigned, weekend, weeknight, selling, or person. Tap a game to
+  claim it, mark it "both of us", mark it for sale, add a note, or edit the
+  resale number.
+- **Ledger** – games, weekend and weeknight counts per person, everything
+  marked for sale (with what it sold for), swap history, and achievements
+  (Weekend Warrior, Tuesday Hero, Rivalry Hoarder…).
 - **Settings** – names, emoji, colors, share link, backup/restore, manual
-  games, and a refresh from the official NHL schedule API.
+  games, and refreshes for the NHL schedule and resale prices.
 
-### How games are valued
+### Resale prices
 
-Every game starts at 10 points. Rivalry games (VAN, EDM, CGY, VGK) add 6,
-marquee opponents add 4, Saturdays add 4, Fridays 3, the home opener 8,
-holidays and theme nights 2. You can add or subtract points on any game so
-the two of you agree on what's fair.
+Every game shows a per-ticket resale value so the two of you can decide
+whether to sell. Two ways to fill it in:
+
+1. **Automatic.** Get a free client ID at <https://platform.seatgeek.com>,
+   put it in `.env` as `VITE_SEATGEEK_CLIENT_ID`, and the app pulls the live
+   average, median, low and listing count for every home game from SeatGeek
+   on load (and on *Refresh prices* in Settings).
+2. **By hand.** Tap a game, hit *Edit*, and type the number you saw. Each
+   game has one-tap links to SeatGeek, StubHub and Ticketmaster.
+
+A number you type always wins over the live one. When you mark a game *Sell
+it* you can record what the pair actually sold for, and the Ledger totals it.
 
 ## Sharing between the two of you
 
@@ -39,6 +50,9 @@ publishable key in `.env`:
 VITE_SUPABASE_URL=https://xxxx.supabase.co
 VITE_SUPABASE_ANON_KEY=sb_publishable_...
 ```
+
+Resale quotes are market data, not decisions, so they never overwrite the
+other person's changes during a sync.
 
 Then both of you enter the same room code in Settings. Every change shows up
 on both phones instantly.

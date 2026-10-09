@@ -25,14 +25,27 @@ export interface Game {
 export interface Assignment {
   owner: Owner
   note?: string
+  /** what you actually sold the pair for, if you sold it */
+  soldFor?: number
 }
 
 export interface GameOverride {
-  /** extra points the two of you agree this game is worth (can be negative) */
-  bonus?: number
+  /** resale value per ticket you looked up yourself (overrides the live number) */
+  resale?: number
   promo?: string
-  /** hide a game from the board (e.g. you sold the pair) */
+  /** hide a game from the board */
   hidden?: boolean
+}
+
+/** Live resale market snapshot for one game (per-ticket USD). */
+export interface ResaleQuote {
+  average: number | null
+  median: number | null
+  lowest: number | null
+  highest: number | null
+  listings: number
+  url: string | null
+  fetchedAt: string
 }
 
 export interface Trade {
@@ -44,12 +57,6 @@ export interface Trade {
   got: string | null
 }
 
-export interface DraftState {
-  status: 'idle' | 'flipping' | 'live' | 'done'
-  first: PersonId | null
-  picks: string[]
-}
-
 export interface AppState {
   version: 1
   people: [Person, Person]
@@ -58,7 +65,8 @@ export interface AppState {
   scheduleFetchedAt: string | null
   assignments: Record<string, Assignment>
   overrides: Record<string, GameOverride>
-  draft: DraftState
+  /** keyed by `${date}|${opponent}` so it survives schedule refreshes */
+  resale: Record<string, ResaleQuote>
   trades: Trade[]
   room: string | null
   updatedAt: string

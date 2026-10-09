@@ -4,26 +4,32 @@ import { teamInfo } from '../data/teams'
 import { releaseTheKraken } from '../lib/confetti'
 import { useStore } from '../lib/store'
 import type { Game } from '../lib/types'
-import { fmtDate, fmtTime, gameStart, tally, visibleGames } from '../lib/value'
+import { fmtDate, fmtMoney, fmtTime, gameStart, resaleFor, tally, upcomingGames, visibleGames } from '../lib/value'
 import { Countdown } from './Countdown'
 import { GameCard, OwnerChip } from './GameCard'
 import { GameSheet } from './GameSheet'
 import { OpponentBadge } from './OpponentBadge'
 
-export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'draft') => void }) {
+export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }) {
   const { state } = useStore()
   const [open, setOpen] = useState<Game | null>(null)
   const games = visibleGames(state)
   const now = new Date()
   const upcoming = games.filter((g) => gameStart(g).getTime() + 3 * 3600000 > now.getTime())
   const next = upcoming[0]
-  const unassigned = games.filter((g) => !state.assignments[g.id]).length
+  const unassigned = upcomingGames(state).filter((g) => !state.assignments[g.id]).length
   const played = games.length - upcoming.length
   const [p1, p2] = state.people
   const t1 = tally(state, 'p1')
   const t2 = tally(state, 'p2')
-  const total = t1.points + t2.points
-  const pct1 = total === 0 ? 50 : Math.round((t1.points / total) * 100)
+  const wkTotal = t1.weekends + t2.weekends
+  const pct1 = wkTotal === 0 ? 50 : Math.round((t1.weekends / wkTotal) * 100)
+  const hot = upcoming
+    .filter((g) => !state.assignments[g.id] || state.assignments[g.id]!.owner !== 'sell')
+    .map((g) => ({ g, r: resaleFor(g, state) }))
+    .filter((x) => x.r.value)
+    .sort((a, b) => b.r.value! - a.r.value!)
+    .slice(0, 3)
 
   return (
     <div className="space-y-5">
@@ -63,16 +69,16 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'draft') => void })
         </section>
       )}
 
-      {unassigned > 0 && state.draft.status === 'idle' && (
+      {unassigned > 0 && (
         <motion.button
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          onClick={() => goTo('draft')}
+          onClick={() => goTo('schedule')}
           className="glass flex w-full items-center justify-between rounded-2xl border-ice/30 p-4 text-left transition hover:bg-white/10"
         >
           <div>
-            <div className="display text-2xl text-ice">{unassigned} games up for grabs</div>
-            <div className="text-sm text-shadow">Run a snake draft to split them fairly, or tap games in the schedule.</div>
+            <div className="display text-2xl text-ice">{unassigned} upcoming {unassigned === 1 ? 'game' : 'games'} unassigned</div>
+            <div className="text-sm text-shadow">Tap a game in the schedule to decide who's going or whether to sell.</div>
           </div>
           <span className="display text-3xl text-ice">→</span>
         </motion.button>
@@ -86,12 +92,12 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'draft') => void })
                 <span className="text-2xl">{p.emoji}</span>
                 <span className="display text-2xl" style={{ color: p.color }}>{p.name}</span>
               </div>
-              <div className="display text-3xl leading-none text-foam">{Math.round(t.points)} <span className="text-sm text-shadow">pts</span></div>
+              <div className="display text-3xl leading-none text-foam">{fmt(t.games)} <span className="text-sm text-shadow">games</span></div>
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-shadow">
-              <Stat n={t.games} label="games" />
-              <Stat n={t.weekends} label="weekends" />
-              <Stat n={t.premium} label="premium" />
+              <Stat n={fmt(t.weekends)} label="weekend" />
+              <Stat n={fmt(t.weeknights)} label="weeknight" />
+              <Stat n={t.resale ? fmtMoney(t.resale) : '—'} label="resale est." />
             </div>
           </div>
         ))}
@@ -99,19 +105,35 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'draft') => void })
 
       <section className="glass rounded-2xl p-4">
         <div className="flex items-center justify-between text-xs uppercase tracking-widest text-shadow">
-          <span>Fairness meter</span>
-          <span>{Math.abs(t1.points - t2.points) < 6 ? 'Dead even 🤝' : t1.points > t2.points ? `${p1.name} is up ${Math.round(t1.points - t2.points)}` : `${p2.name} is up ${Math.round(t2.points - t1.points)}`}</span>
+          <span>Weekend split</span>
+          <span>
+            {wkTotal === 0 ? 'No weekend games claimed yet' : Math.abs(t1.weekends - t2.weekends) < 1 ? 'Dead even 🤝' : t1.weekends > t2.weekends ? `${p1.name} has ${fmt(t1.weekends - t2.weekends)} more` : `${p2.name} has ${fmt(t2.weekends - t1.weekends)} more`}
+          </span>
         </div>
         <div className="mt-2 flex h-4 overflow-hidden rounded-full bg-abyss/60">
           <motion.div className="h-full" animate={{ width: `${pct1}%` }} style={{ background: p1.color }} transition={{ type: 'spring', stiffness: 80, damping: 20 }} />
           <motion.div className="h-full flex-1" style={{ background: p2.color }} />
         </div>
         <div className="mt-2 flex justify-between text-xs text-shadow">
-          <span>{p1.emoji} {pct1}%</span>
-          <span>{played}/{games.length} games played</span>
-          <span>{100 - pct1}% {p2.emoji}</span>
+          <span>{p1.emoji} {fmt(t1.weekends)} weekend</span>
+          <span>{played}/{games.length} played</span>
+          <span>{fmt(t2.weekends)} weekend {p2.emoji}</span>
         </div>
       </section>
+
+      {hot.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="display text-2xl text-ice">Worth the most right now</h2>
+            <button className="text-sm text-shadow hover:text-ice" onClick={() => goTo('ledger')}>Ledger →</button>
+          </div>
+          <div className="space-y-2">
+            {hot.map(({ g }) => (
+              <GameCard key={g.id} game={g} compact onClick={() => setOpen(g)} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {upcoming.length > 1 && (
         <section>
@@ -132,10 +154,14 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'draft') => void })
   )
 }
 
-function Stat({ n, label }: { n: number; label: string }) {
+function fmt(n: number): string {
+  return Number.isInteger(n) ? String(n) : n.toFixed(1)
+}
+
+function Stat({ n, label }: { n: string; label: string }) {
   return (
     <div className="rounded-xl bg-abyss/40 py-2">
-      <div className="display text-xl text-foam">{Number.isInteger(n) ? n : n.toFixed(1)}</div>
+      <div className="display text-xl text-foam">{n}</div>
       <div>{label}</div>
     </div>
   )

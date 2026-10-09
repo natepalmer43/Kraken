@@ -3,6 +3,7 @@ import { SEASON_LABEL } from '../data/schedule'
 import { TEAMS } from '../data/teams'
 import { useStore } from '../lib/store'
 import { shareUrl } from '../lib/share'
+import { SEATGEEK_AVAILABLE } from '../lib/seatgeek'
 import { SYNC_AVAILABLE } from '../lib/supabase'
 import type { Game, PersonId } from '../lib/types'
 import { useToast } from './Toast'
@@ -11,7 +12,7 @@ const EMOJI = ['🐙', '🦑', '🦈', '🐋', '🐬', '🦀', '🐠', '⚓', '�
 const COLORS = ['#99D9D9', '#E9072B', '#68A2B9', '#FFB81C', '#7CFC00', '#FF7AC6', '#C084FC', '#FF8C42']
 
 export function SettingsTab() {
-  const { state, dispatch, refreshSchedule, syncStatus } = useStore()
+  const { state, dispatch, refreshSchedule, refreshResale, syncStatus, resaleStatus } = useStore()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [roomInput, setRoomInput] = useState(state.room ?? '')
@@ -160,6 +161,34 @@ export function SettingsTab() {
         )}
       </Section>
 
+      <Section title="Resale prices">
+        {SEATGEEK_AVAILABLE ? (
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <div>
+              <div className="text-foam">{Object.keys(state.resale).length} games priced from SeatGeek</div>
+              <div className="text-xs text-shadow">
+                {resaleStatus === 'loading' ? 'Fetching…' : resaleStatus === 'failed' ? 'Last fetch failed' : newest(state.resale) ? `Updated ${newest(state.resale)}` : 'Not fetched yet'}
+              </div>
+            </div>
+            <button
+              disabled={resaleStatus === 'loading'}
+              onClick={async () => {
+                const r = await refreshResale()
+                toast(r === 'ok' ? 'Resale prices updated' : 'Could not reach SeatGeek right now', r === 'ok' ? 'ok' : 'warn')
+              }}
+              className="shrink-0 rounded-full bg-ice/20 px-3 py-1.5 text-xs font-semibold text-ice disabled:opacity-50"
+            >
+              ↻ Refresh prices
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-foam/80">
+            Each game shows a resale value per ticket so you can decide whether to sell. Right now you enter it yourself (tap a game → Edit) after checking the SeatGeek, StubHub and Ticketmaster links.
+            To pull live averages automatically, add a free SeatGeek client ID to <code className="text-ice">.env</code> (see README).
+          </p>
+        )}
+      </Section>
+
       <Section title="Backup">
         <div className="flex flex-wrap gap-2">
           <button onClick={exportJson} className="rounded-full bg-white/5 px-4 py-2 text-sm font-semibold hover:bg-white/10">⬇ Export JSON</button>
@@ -169,7 +198,7 @@ export function SettingsTab() {
           </label>
           <button
             onClick={() => {
-              if (confirm('Clear every assignment, trade and draft? Your names and schedule stay.')) {
+              if (confirm('Clear every assignment and swap? Your names, schedule and prices stay.')) {
                 dispatch({ type: 'clearAssignments' })
                 toast('Board cleared')
               }
@@ -184,6 +213,11 @@ export function SettingsTab() {
       <p className="pb-4 text-center text-xs text-shadow/70">Release the Tickets · {SEASON_LABEL} · Not affiliated with the Seattle Kraken or the NHL.</p>
     </div>
   )
+}
+
+function newest(resale: Record<string, { fetchedAt: string }>): string | null {
+  const ts = Object.values(resale).map((q) => Date.parse(q.fetchedAt)).filter(Number.isFinite)
+  return ts.length ? new Date(Math.max(...ts)).toLocaleString() : null
 }
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {

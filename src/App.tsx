@@ -1,7 +1,6 @@
 import { AnimatePresence, motion } from 'motion/react'
 import { useState } from 'react'
 import { Background } from './components/Background'
-import { DraftTab } from './components/DraftTab'
 import { HomeTab } from './components/HomeTab'
 import { LedgerTab } from './components/LedgerTab'
 import { ScheduleTab } from './components/ScheduleTab'
@@ -13,12 +12,11 @@ import { useStore } from './lib/store'
 import { clearShareHash, readShareFromUrl } from './lib/share'
 import type { AppState } from './lib/types'
 
-type Tab = 'home' | 'schedule' | 'draft' | 'ledger' | 'settings'
+type Tab = 'home' | 'schedule' | 'ledger' | 'settings'
 
 const TABS: Array<{ id: Tab; label: string; icon: string }> = [
   { id: 'home', label: 'Home', icon: '🏠' },
   { id: 'schedule', label: 'Schedule', icon: '📅' },
-  { id: 'draft', label: 'Draft', icon: '🪙' },
   { id: 'ledger', label: 'Ledger', icon: '⚖️' },
   { id: 'settings', label: 'Settings', icon: '⚙️' },
 ]
@@ -62,7 +60,6 @@ export default function App() {
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
             {tab === 'home' && <HomeTab goTo={setTab} />}
             {tab === 'schedule' && <ScheduleTab />}
-            {tab === 'draft' && <DraftTab />}
             {tab === 'ledger' && <LedgerTab />}
             {tab === 'settings' && <SettingsTab />}
           </motion.div>

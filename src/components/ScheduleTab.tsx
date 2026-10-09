@@ -2,27 +2,32 @@ import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useStore } from '../lib/store'
 import type { Game } from '../lib/types'
-import { monthKey, monthLabel, visibleGames } from '../lib/value'
+import { isWeekend, monthKey, monthLabel, todayKey, visibleGames } from '../lib/value'
 import { GameCard } from './GameCard'
 import { GameSheet } from './GameSheet'
 
-type Filter = 'all' | 'p1' | 'p2' | 'open' | 'upcoming'
+type Filter = 'upcoming' | 'all' | 'open' | 'weekend' | 'weeknight' | 'sell' | 'p1' | 'p2'
 
 export function ScheduleTab() {
   const { state } = useStore()
   const [filter, setFilter] = useState<Filter>('upcoming')
   const [open, setOpen] = useState<Game | null>(null)
   const games = visibleGames(state)
-  const today = new Date().toISOString().slice(0, 10)
+  const today = todayKey()
 
   const filtered = useMemo(
     () =>
       games.filter((g) => {
         const o = state.assignments[g.id]?.owner
-        if (filter === 'open') return !o
-        if (filter === 'p1' || filter === 'p2') return o === filter || o === 'both'
-        if (filter === 'upcoming') return g.date >= today
-        return true
+        switch (filter) {
+          case 'open': return !o && g.date >= today
+          case 'weekend': return isWeekend(g) && g.date >= today
+          case 'weeknight': return !isWeekend(g) && g.date >= today
+          case 'sell': return o === 'sell'
+          case 'p1': case 'p2': return o === filter || o === 'both'
+          case 'upcoming': return g.date >= today
+          default: return true
+        }
       }),
     [games, filter, state.assignments, today],
   )
@@ -36,12 +41,16 @@ export function ScheduleTab() {
     return [...m.entries()]
   }, [filtered])
 
+  const openCount = games.filter((g) => !state.assignments[g.id] && g.date >= today).length
   const chips: Array<{ id: Filter; label: string }> = [
     { id: 'upcoming', label: 'Upcoming' },
-    { id: 'all', label: 'All' },
-    { id: 'open', label: `Open (${games.filter((g) => !state.assignments[g.id]).length})` },
+    { id: 'open', label: `Unassigned${openCount ? ` (${openCount})` : ''}` },
+    { id: 'weekend', label: '🎉 Weekend' },
+    { id: 'weeknight', label: 'Weeknight' },
+    { id: 'sell', label: '💸 Selling' },
     { id: 'p1', label: `${state.people[0].emoji} ${state.people[0].name}` },
     { id: 'p2', label: `${state.people[1].emoji} ${state.people[1].name}` },
+    { id: 'all', label: 'All' },
   ]
 
   return (

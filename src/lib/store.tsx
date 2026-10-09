@@ -1,9 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { BUNDLED_SCHEDULE } from '../data/schedule'
 import { fetchKrakenHomeSchedule, remapByGame } from './nhl'
+import { SEATGEEK_AVAILABLE, fetchResaleQuotes } from './seatgeek'
 import { SYNC_AVAILABLE, loadBoard, saveBoard, subscribeBoard } from './supabase'
-import type { AppState, Game, GameOverride, Owner, PersonId } from './types'
-import { draftableGames, gameValue } from './value'
+import type { AppState, Game, GameOverride, Owner, PersonId, ResaleQuote } from './types'
 
 const STORAGE_KEY = 'release-the-tickets:v1'
 
@@ -19,7 +19,7 @@ export function initialState(): AppState {
     scheduleFetchedAt: null,
     assignments: {},
     overrides: {},
-    draft: { status: 'idle', first: null, picks: [] },
+    resale: {},
     trades: [],
     room: null,
     updatedAt: new Date(0).toISOString(),
@@ -31,15 +31,11 @@ export type Action =
   | { type: 'setPerson'; id: PersonId; patch: Partial<Omit<AppState['people'][0], 'id'>> }
   | { type: 'assign'; gameId: string; owner: Owner | null }
   | { type: 'note'; gameId: string; note: string }
+  | { type: 'soldFor'; gameId: string; amount: number | null }
   | { type: 'override'; gameId: string; patch: GameOverride }
   | { type: 'addGame'; game: Game }
   | { type: 'setSchedule'; games: Game[] }
-  | { type: 'draftStart' }
-  | { type: 'draftFlip'; first: PersonId }
-  | { type: 'draftPick'; gameId: string }
-  | { type: 'draftUndo' }
-  | { type: 'draftEnd' }
-  | { type: 'draftReset' }
+  | { type: 'setResale'; quotes: Record<string, ResaleQuote> }
   | { type: 'trade'; from: PersonId; gave: string; got: string | null }
   | { type: 'setRoom'; room: string | null }
   | { type: 'clearAssignments' }
@@ -48,18 +44,10 @@ function stamp(s: AppState): AppState {
   return { ...s, updatedAt: new Date().toISOString() }
 }
 
-/** Snake order: A B B A A B B A ... */
-export function pickerAt(index: number, first: PersonId): PersonId {
-  const second: PersonId = first === 'p1' ? 'p2' : 'p1'
-  const round = Math.floor(index / 2)
-  const slot = index % 2
-  return round % 2 === 0 ? (slot === 0 ? first : second) : slot === 0 ? second : first
-}
-
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'replace':
-      return { ...action.state, room: action.keepRoom ? state.room : action.state.room }
+      return { ...initialState(), ...action.state, room: action.keepRoom ? state.room : action.state.room }
     case 'setPerson':
       return stamp({
         ...state,
@@ -76,6 +64,14 @@ export function reducer(state: AppState, action: Action): AppState {
       if (!existing) return state
       return stamp({ ...state, assignments: { ...state.assignments, [action.gameId]: { ...existing, note: action.note } } })
     }
+    case 'soldFor': {
+      const existing = state.assignments[action.gameId]
+      if (!existing) return state
+      const next = { ...existing }
+      if (action.amount === null) delete next.soldFor
+      else next.soldFor = action.amount
+      return stamp({ ...state, assignments: { ...state.assignments, [action.gameId]: next } })
+    }
     case 'override':
       return stamp({
         ...state,
@@ -86,15 +82,6 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'setSchedule': {
       const manual = state.games.filter((g) => g.source === 'manual')
       const games = [...action.games, ...manual]
-      const idMap = remapByGame(
-        state.games,
-        games,
-        Object.fromEntries(state.games.map((g) => [g.id, g.id])),
-      )
-      const picks = state.draft.picks.map((id) => {
-        const hit = Object.entries(idMap).find(([, oldId]) => oldId === id)
-        return hit ? hit[0] : id
-      })
       return stamp({
         ...state,
         games,
@@ -102,35 +89,11 @@ export function reducer(state: AppState, action: Action): AppState {
         scheduleFetchedAt: new Date().toISOString(),
         assignments: remapByGame(state.games, games, state.assignments),
         overrides: remapByGame(state.games, games, state.overrides),
-        draft: { ...state.draft, picks },
       })
     }
-    case 'draftStart':
-      return stamp({ ...state, draft: { status: 'flipping', first: null, picks: [] } })
-    case 'draftFlip':
-      return stamp({ ...state, draft: { status: 'live', first: action.first, picks: [] } })
-    case 'draftPick': {
-      if (state.draft.status !== 'live' || !state.draft.first) return state
-      if (state.draft.picks.includes(action.gameId)) return state
-      const who = pickerAt(state.draft.picks.length, state.draft.first)
-      const picks = [...state.draft.picks, action.gameId]
-      const assignments = { ...state.assignments, [action.gameId]: { ...state.assignments[action.gameId], owner: who } }
-      const remaining = draftableGames(state).filter((g) => !picks.includes(g.id) && !assignments[g.id])
-      const status = remaining.length === 0 ? 'done' : 'live'
-      return stamp({ ...state, assignments, draft: { ...state.draft, picks, status } })
-    }
-    case 'draftUndo': {
-      const picks = state.draft.picks.slice()
-      const last = picks.pop()
-      if (!last) return state
-      const assignments = { ...state.assignments }
-      delete assignments[last]
-      return stamp({ ...state, assignments, draft: { ...state.draft, picks, status: 'live' } })
-    }
-    case 'draftEnd':
-      return stamp({ ...state, draft: { ...state.draft, status: 'done' } })
-    case 'draftReset':
-      return stamp({ ...state, draft: { status: 'idle', first: null, picks: [] } })
+    case 'setResale':
+      // Resale quotes are market data, not a decision: don't bump updatedAt so they never win a sync conflict.
+      return { ...state, resale: { ...state.resale, ...action.quotes } }
     case 'trade': {
       const to: PersonId = action.from === 'p1' ? 'p2' : 'p1'
       const assignments = { ...state.assignments }
@@ -148,7 +111,7 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'setRoom':
       return { ...state, room: action.room }
     case 'clearAssignments':
-      return stamp({ ...state, assignments: {}, trades: [], draft: { status: 'idle', first: null, picks: [] } })
+      return stamp({ ...state, assignments: {}, trades: [] })
     default:
       return state
   }
@@ -158,9 +121,10 @@ function loadLocal(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialState()
-    const parsed = JSON.parse(raw) as AppState
+    const parsed = JSON.parse(raw) as Partial<AppState> & { draft?: unknown }
     if (parsed.version !== 1) return initialState()
-    return { ...initialState(), ...parsed }
+    delete parsed.draft
+    return { ...initialState(), ...(parsed as AppState) }
   } catch {
     return initialState()
   }
@@ -170,29 +134,31 @@ interface StoreCtx {
   state: AppState
   dispatch: (a: Action) => void
   refreshSchedule: () => Promise<'ok' | 'failed'>
+  refreshResale: () => Promise<'ok' | 'failed' | 'unavailable'>
   syncStatus: 'off' | 'connecting' | 'live' | 'error'
-  autoPick: () => void
+  resaleStatus: 'idle' | 'loading' | 'ok' | 'failed'
 }
 
 const Ctx = createContext<StoreCtx | null>(null)
+
+const SIX_HOURS = 6 * 60 * 60 * 1000
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadLocal)
   const stateRef = useRef(state)
   stateRef.current = state
   const [syncStatus, setSyncStatus] = useReducer((_: StoreCtx['syncStatus'], n: StoreCtx['syncStatus']) => n, 'off')
+  const [resaleStatus, setResaleStatus] = useReducer((_: StoreCtx['resaleStatus'], n: StoreCtx['resaleStatus']) => n, 'idle')
   const applyingRemote = useRef(false)
 
-  // Persist locally
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
     } catch {
-      /* storage full or blocked; ignore */
+      /* storage full or blocked */
     }
   }, [state])
 
-  // Live schedule refresh on first load (and whenever the bundled list is in use)
   const refreshSchedule = async (): Promise<'ok' | 'failed'> => {
     try {
       const games = await fetchKrakenHomeSchedule()
@@ -202,13 +168,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       return 'failed'
     }
   }
+
+  const refreshResale = async (): Promise<'ok' | 'failed' | 'unavailable'> => {
+    if (!SEATGEEK_AVAILABLE) return 'unavailable'
+    setResaleStatus('loading')
+    try {
+      const quotes = await fetchResaleQuotes(stateRef.current.games)
+      dispatch({ type: 'setResale', quotes })
+      setResaleStatus('ok')
+      return 'ok'
+    } catch {
+      setResaleStatus('failed')
+      return 'failed'
+    }
+  }
+
   useEffect(() => {
     const last = state.scheduleFetchedAt ? Date.parse(state.scheduleFetchedAt) : 0
-    if (Date.now() - last > 6 * 60 * 60 * 1000) void refreshSchedule()
+    const schedulePromise = Date.now() - last > SIX_HOURS ? refreshSchedule() : Promise.resolve('ok' as const)
+    const newestQuote = Math.max(0, ...Object.values(state.resale).map((q) => Date.parse(q.fetchedAt)))
+    if (Date.now() - newestQuote > SIX_HOURS) void schedulePromise.then(() => refreshResale())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Supabase realtime sync when a room is set
   useEffect(() => {
     if (!SYNC_AVAILABLE || !state.room) {
       setSyncStatus('off')
@@ -244,7 +226,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     }
   }, [state.room])
 
-  // Push local changes to the room (debounced)
   useEffect(() => {
     if (!SYNC_AVAILABLE || !state.room || syncStatus !== 'live') return
     if (applyingRemote.current) {
@@ -258,19 +239,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => clearTimeout(t)
   }, [state, syncStatus])
 
-  const autoPick = () => {
-    const s = stateRef.current
-    if (s.draft.status !== 'live') return
-    const remaining = draftableGames(s).filter((g) => !s.assignments[g.id])
-    if (!remaining.length) return
-    const best = remaining.map((g) => ({ g, v: gameValue(g, s).total })).sort((a, b) => b.v - a.v)[0]
-    dispatch({ type: 'draftPick', gameId: best.g.id })
-  }
-
   const value = useMemo<StoreCtx>(
-    () => ({ state, dispatch, refreshSchedule, syncStatus, autoPick }),
+    () => ({ state, dispatch, refreshSchedule, refreshResale, syncStatus, resaleStatus }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, syncStatus],
+    [state, syncStatus, resaleStatus],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
@@ -279,9 +251,4 @@ export function useStore(): StoreCtx {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useStore outside StoreProvider')
   return ctx
-}
-
-export function usePerson(id: PersonId) {
-  const { state } = useStore()
-  return state.people.find((p) => p.id === id)!
 }
