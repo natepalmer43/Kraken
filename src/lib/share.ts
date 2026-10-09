@@ -2,8 +2,7 @@ import { compressToEncodedURIComponent, decompressFromEncodedURIComponent } from
 import type { AppState } from './types'
 
 export function encodeShare(state: AppState): string {
-  const payload = { ...state, room: null }
-  return compressToEncodedURIComponent(JSON.stringify(payload))
+  return compressToEncodedURIComponent(JSON.stringify(state))
 }
 
 export function shareUrl(state: AppState): string {

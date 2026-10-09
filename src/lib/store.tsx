@@ -22,13 +22,12 @@ export function initialState(): AppState {
     overrides: {},
     resale: {},
     trades: [],
-    room: null,
     updatedAt: new Date(0).toISOString(),
   }
 }
 
 export type Action =
-  | { type: 'replace'; state: AppState; keepRoom?: boolean }
+  | { type: 'replace'; state: AppState }
   | { type: 'setPerson'; id: PersonId; patch: Partial<Omit<AppState['people'][0], 'id'>> }
   | { type: 'assign'; gameId: string; owner: Owner | null }
   | { type: 'note'; gameId: string; note: string }
@@ -38,7 +37,6 @@ export type Action =
   | { type: 'setSchedule'; games: Game[] }
   | { type: 'setResale'; quotes: Record<string, ResaleQuote> }
   | { type: 'trade'; from: PersonId; gave: string; got: string | null }
-  | { type: 'setRoom'; room: string | null }
   | { type: 'clearAssignments' }
 
 function stamp(s: AppState): AppState {
@@ -48,7 +46,7 @@ function stamp(s: AppState): AppState {
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'replace':
-      return migratePlan({ ...initialState(), ...action.state, room: action.keepRoom ? state.room : action.state.room })
+      return migratePlan({ ...initialState(), ...action.state })
     case 'setPerson':
       return stamp({
         ...state,
@@ -107,8 +105,6 @@ export function reducer(state: AppState, action: Action): AppState {
         ],
       })
     }
-    case 'setRoom':
-      return { ...state, room: action.room }
     case 'clearAssignments':
       return stamp({ ...state, assignments: {}, trades: [] })
     default:
@@ -120,9 +116,10 @@ function loadLocal(): AppState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     if (!raw) return initialState()
-    const parsed = JSON.parse(raw) as Partial<AppState> & { draft?: unknown }
+    const parsed = JSON.parse(raw) as Partial<AppState> & { draft?: unknown; room?: unknown }
     if (parsed.version !== 1) return initialState()
     delete parsed.draft
+    delete parsed.room
     const merged = { ...initialState(), ...(parsed as AppState) }
     // Colors from the first (dark) design don't read on cream; map them to the current palette.
     const legacy: Record<string, string> = { '#99D9D9': '#1FB5A8', '#E9072B': '#D7263D', '#68A2B9': '#0B1F3A', '#FFB81C': '#B8860B', '#7CFC00': '#2A9D3B', '#FF7AC6': '#FF4FA3', '#C084FC': '#5B2A86', '#FF8C42': '#F26419' }
@@ -216,50 +213,49 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Live sync: the room is baked in, so this runs on every load when keys are present.
   useEffect(() => {
-    if (!SYNC_AVAILABLE || !state.room) {
+    if (!SYNC_AVAILABLE) {
       setSyncStatus('off')
       return
     }
-    const room = state.room
     let cancelled = false
     setSyncStatus('connecting')
     ;(async () => {
       try {
-        const remote = await loadBoard(room)
+        const remote = await loadBoard()
         if (cancelled) return
         if (remote && Date.parse(remote.updatedAt) > Date.parse(stateRef.current.updatedAt)) {
           applyingRemote.current = true
-          dispatch({ type: 'replace', state: remote, keepRoom: true })
+          dispatch({ type: 'replace', state: remote })
         } else {
-          await saveBoard(room, stateRef.current)
+          await saveBoard(stateRef.current)
         }
         setSyncStatus('live')
       } catch {
         if (!cancelled) setSyncStatus('error')
       }
     })()
-    const unsub = subscribeBoard(room, (remote) => {
+    const unsub = subscribeBoard((remote) => {
       if (Date.parse(remote.updatedAt) > Date.parse(stateRef.current.updatedAt)) {
         applyingRemote.current = true
-        dispatch({ type: 'replace', state: remote, keepRoom: true })
+        dispatch({ type: 'replace', state: remote })
       }
     })
     return () => {
       cancelled = true
       unsub()
     }
-  }, [state.room])
+  }, [])
 
   useEffect(() => {
-    if (!SYNC_AVAILABLE || !state.room || syncStatus !== 'live') return
+    if (!SYNC_AVAILABLE || syncStatus !== 'live') return
     if (applyingRemote.current) {
       applyingRemote.current = false
       return
     }
-    const room = state.room
     const t = setTimeout(() => {
-      saveBoard(room, stateRef.current).catch(() => setSyncStatus('error'))
+      saveBoard(stateRef.current).catch(() => setSyncStatus('error'))
     }, 400)
     return () => clearTimeout(t)
   }, [state, syncStatus])

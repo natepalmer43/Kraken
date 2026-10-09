@@ -54,8 +54,9 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_...
 Resale quotes are market data, not decisions, so they never overwrite the
 other person's changes during a sync.
 
-Then both of you enter the same room code in Settings. Every change shows up
-on both phones instantly.
+That's it. The room both phones share is baked into the app (`ROOM` in
+`src/lib/supabase.ts`), so there is nothing to enter in Settings: open the
+site and every change shows up on both phones instantly.
 
 ## Schedule data
 
