@@ -1,12 +1,13 @@
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { teamInfo } from '../data/teams'
-import { krakenBurst } from '../lib/confetti'
+import { burst } from '../lib/confetti'
 import { useStore } from '../lib/store'
 import type { Game, PersonId } from '../lib/types'
 import { fmtDate, fmtMoney, isWeekend, resaleFor, tally, visibleGames } from '../lib/value'
 import { GameCard } from './GameCard'
 import { GameSheet } from './GameSheet'
+import { SectionHead } from './HomeTab'
 import { OpponentBadge } from './OpponentBadge'
 import { Sheet } from './Sheet'
 import { useToast } from './Toast'
@@ -36,42 +37,38 @@ export function LedgerTab() {
   const doTrade = () => {
     if (!gave) return
     dispatch({ type: 'trade', from, gave, got })
-    krakenBurst()
-    toast('Swap logged 🤝')
+    burst()
+    toast('Swap logged')
     setTradeOpen(false)
     setGave(null)
     setGot(null)
   }
 
   return (
-    <div className="space-y-5">
-      <section className="glass rounded-3xl p-5">
-        <div className="text-xs uppercase tracking-[0.25em] text-shadow">Season ledger</div>
-        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-start gap-2">
+    <div className="space-y-6">
+      {/* TV score bug */}
+      <section className="jumbotron p-4">
+        <div className="pixel text-[9px] text-silver/80">SEASON STATS · 2026-27</div>
+        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
           <Column p={p1} t={t1} align="left" />
-          <div className="display pt-1 text-center text-shadow">
-            <div className="text-sm">Weekend</div>
-            <div className="text-4xl text-foam">{fmt(t1.weekends)}<span className="mx-1 text-shadow">:</span>{fmt(t2.weekends)}</div>
+          <div className="text-center">
+            <div className="pixel text-[8px] text-silver/70">WEEKEND</div>
+            <div className="led text-3xl sm:text-4xl">{fmt(t1.weekends)}<span className="blink mx-1 text-silver/60">:</span>{fmt(t2.weekends)}</div>
           </div>
           <Column p={p2} t={t2} align="right" />
         </div>
-        <button onClick={() => setTradeOpen(true)} className="mt-5 w-full rounded-full bg-ice px-4 py-3 font-extrabold text-deep shadow-glow active:scale-[0.98]">
-          🤝 Swap games
-        </button>
+        <button onClick={() => setTradeOpen(true)} className="btn90 mt-4 w-full">🤝 Swap games</button>
       </section>
 
-      <section className="glass rounded-3xl p-5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="display text-2xl text-amber-200">💸 Selling</h2>
-          <div className="text-right text-xs text-shadow">
-            {sold.length > 0 && <div>Sold {sold.length} for <span className="text-amber-100">{fmtMoney(soldTotal)}</span></div>}
-            {listedTotal > 0 && <div>Still listed ≈ <span className="text-amber-100">{fmtMoney(listedTotal)}</span></div>}
-          </div>
-        </div>
+      <section>
+        <SectionHead
+          title="For sale"
+          sub={sold.length || listedTotal ? `${sold.length ? `Sold ${sold.length} for ${fmtMoney(soldTotal)}` : ''}${sold.length && listedTotal ? ' · ' : ''}${listedTotal ? `Still listed ≈ ${fmtMoney(listedTotal)}` : ''}` : undefined}
+        />
         {selling.length === 0 ? (
-          <p className="mt-2 text-sm text-shadow">Nothing marked for sale. Tap a game and pick “Sell it” when neither of you can make it.</p>
+          <div className="card90 p-6 text-center text-sm font-semibold text-steel">Nothing marked for sale. Tap a game and hit “Sell it” when neither of you can make it.</div>
         ) : (
-          <div className="mt-3 space-y-2">
+          <div className="space-y-3">
             {selling.map((g) => (
               <GameCard key={g.id} game={g} compact onClick={() => setOpenGame(g)} />
             ))}
@@ -80,36 +77,40 @@ export function LedgerTab() {
       </section>
 
       <section>
-        <h2 className="display mb-2 text-2xl text-ice">Achievements</h2>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+        <SectionHead title="Trophy case" />
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
           {badges.map((b) => (
-            <motion.div key={b.title} whileHover={{ y: -2 }} className={`glass rounded-2xl p-3 ${b.holder ? '' : 'opacity-50'}`} style={b.holder ? { borderColor: `${b.holder.color}55` } : undefined}>
-              <div className="text-2xl">{b.icon}</div>
-              <div className="display mt-1 text-lg leading-tight">{b.title}</div>
-              <div className="text-xs text-shadow">{b.holder ? `${b.holder.emoji} ${b.holder.name}` : b.hint}</div>
+            <motion.div key={b.title} whileHover={{ rotate: -1.5 }} className={b.holder ? 'foil p-3' : 'card90-flat p-3 opacity-60'}>
+              <div className="text-3xl">{b.icon}</div>
+              <div className="display mt-1 text-xl leading-tight">{b.title}</div>
+              {b.holder ? (
+                <span className="tag mt-1" style={{ background: b.holder.color, color: '#fff', textShadow: '1px 1px 0 #0a0a0a' }}>{b.holder.emoji} {b.holder.name}</span>
+              ) : (
+                <div className="text-xs font-semibold text-steel">{b.hint}</div>
+              )}
             </motion.div>
           ))}
         </div>
       </section>
 
       <section>
-        <h2 className="display mb-2 text-2xl text-ice">Swap history</h2>
+        <SectionHead title="Swap history" />
         {state.trades.length === 0 ? (
-          <div className="glass rounded-2xl p-6 text-center text-sm text-shadow">No swaps yet. Keep it civil.</div>
+          <div className="card90 p-6 text-center text-sm font-semibold text-steel">No swaps yet. Keep it civil.</div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {state.trades.map((tr) => {
               const f = state.people.find((p) => p.id === tr.from)!
               const t = state.people.find((p) => p.id === tr.to)!
               const g1 = state.games.find((g) => g.id === tr.gave)
               const g2 = tr.got ? state.games.find((g) => g.id === tr.got) : null
               return (
-                <div key={tr.id} className="glass flex items-center gap-3 rounded-2xl p-3 text-sm">
+                <div key={tr.id} className="card90-sm flex items-center gap-3 p-3 text-sm font-semibold">
                   <span className="text-xl">{f.emoji}</span>
                   <div className="flex-1">
                     <span style={{ color: f.color }}>{f.name}</span> gave {g1 ? `${g1.opponent} ${fmtDate(g1.date, { month: 'short', day: 'numeric' })}` : '?'} to <span style={{ color: t.color }}>{t.name}</span>
                     {g2 && <> for {g2.opponent} {fmtDate(g2.date, { month: 'short', day: 'numeric' })}</>}
-                    <div className="text-xs text-shadow">{new Date(tr.at).toLocaleDateString()}</div>
+                    <div className="text-xs text-steel">{new Date(tr.at).toLocaleDateString()}</div>
                   </div>
                   <span className="text-xl">{t.emoji}</span>
                 </div>
@@ -120,18 +121,16 @@ export function LedgerTab() {
       </section>
 
       <Sheet open={tradeOpen} onClose={() => setTradeOpen(false)} title="Swap games">
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           {state.people.map((p) => (
-            <button key={p.id} onClick={() => { setFrom(p.id); setGave(null); setGot(null) }} className={`flex-1 rounded-xl border px-3 py-2 text-sm font-semibold ${from === p.id ? 'ring-2 ring-foam/70' : ''}`} style={{ background: `${p.color}2a`, color: p.color, borderColor: `${p.color}66` }}>
+            <button key={p.id} onClick={() => { setFrom(p.id); setGave(null); setGot(null) }} className={`btn90 sm flex-1 ${from === p.id ? 'outline outline-4 outline-yellow' : ''}`} style={{ background: p.color, color: '#fff', textShadow: '1px 1px 0 #0a0a0a' }}>
               {p.emoji} {p.name} gives
             </button>
           ))}
         </div>
         <Picker label={`${state.people.find((p) => p.id === from)!.name} gives up`} games={owned(from)} value={gave} onChange={setGave} />
         <Picker label={`…and gets from ${state.people.find((p) => p.id === to)!.name} (optional)`} games={owned(to)} value={got} onChange={setGot} allowNone />
-        <button disabled={!gave} onClick={doTrade} className="mt-4 w-full rounded-full bg-ice px-4 py-3 font-extrabold text-deep disabled:opacity-40">
-          Make it official
-        </button>
+        <button disabled={!gave} onClick={doTrade} className="btn90 mt-5 w-full">Make it official</button>
       </Sheet>
       <GameSheet game={openGame} onClose={() => setOpenGame(null)} />
     </div>
@@ -145,21 +144,21 @@ function fmt(n: number): string {
 function Picker({ label, games, value, onChange, allowNone }: { label: string; games: Game[]; value: string | null; onChange: (v: string | null) => void; allowNone?: boolean }) {
   return (
     <div className="mt-4">
-      <div className="mb-1 text-xs uppercase tracking-widest text-shadow">{label}</div>
-      <div className="scroll-hide flex gap-2 overflow-x-auto pb-1">
+      <div className="mb-1 text-xs font-extrabold uppercase tracking-wider text-steel">{label}</div>
+      <div className="scroll-hide -mx-1 flex gap-2 overflow-x-auto px-1 py-1">
         {allowNone && (
-          <button onClick={() => onChange(null)} className={`glass shrink-0 rounded-xl px-3 py-2 text-xs ${value === null ? 'ring-2 ring-ice' : ''}`}>Nothing</button>
+          <button onClick={() => onChange(null)} className={`card90-sm shrink-0 px-3 py-2 text-xs font-bold ${value === null ? 'outline outline-4 outline-yellow' : ''}`}>Nothing</button>
         )}
         {games.map((g) => (
-          <button key={g.id} onClick={() => onChange(g.id)} className={`glass flex shrink-0 items-center gap-2 rounded-xl p-2 text-left ${value === g.id ? 'ring-2 ring-ice' : ''}`}>
-            <OpponentBadge abbrev={g.opponent} size={34} />
+          <button key={g.id} onClick={() => onChange(g.id)} className={`card90-sm flex shrink-0 items-center gap-2 p-2 text-left ${value === g.id ? 'outline outline-4 outline-yellow' : ''}`}>
+            <OpponentBadge abbrev={g.opponent} size={40} />
             <div>
-              <div className="text-xs font-semibold">{fmtDate(g.date, { month: 'short', day: 'numeric' })}</div>
-              <div className="text-[10px] text-shadow">{isWeekend(g) ? 'Weekend' : 'Weeknight'}</div>
+              <div className="text-xs font-extrabold">{fmtDate(g.date, { month: 'short', day: 'numeric' })}</div>
+              <div className="text-[10px] font-bold uppercase text-steel">{isWeekend(g) ? '★ Weekend' : 'Weeknight'}</div>
             </div>
           </button>
         ))}
-        {games.length === 0 && <div className="text-xs text-shadow">No games owned yet.</div>}
+        {games.length === 0 && <div className="text-xs font-semibold text-steel">No games owned yet.</div>}
       </div>
     </div>
   )
@@ -168,12 +167,12 @@ function Picker({ label, games, value, onChange, allowNone }: { label: string; g
 function Column({ p, t, align }: { p: { name: string; emoji: string; color: string }; t: ReturnType<typeof tally>; align: 'left' | 'right' }) {
   return (
     <div className={align === 'right' ? 'text-right' : ''}>
-      <div className="display text-2xl" style={{ color: p.color }}>{p.emoji} {p.name}</div>
-      <div className="display text-5xl leading-none">{fmt(t.games)}<span className="ml-1 text-base text-shadow">games</span></div>
-      <div className="mt-1 text-xs text-shadow">
-        {fmt(t.weekends)} wknd · {fmt(t.weeknights)} wknight · {fmt(t.rivals)} rivalry
+      <div className="pixel text-[9px]" style={{ color: p.color }}>{p.emoji} {p.name.toUpperCase()}</div>
+      <div className="led mt-1 text-3xl sm:text-5xl">{fmt(t.games)}</div>
+      <div className="pixel mt-1 text-[7px] leading-relaxed text-silver/70">
+        GP · {fmt(t.weekends)} WKND<br />{fmt(t.weeknights)} WKNT · {fmt(t.rivals)} RIVAL
       </div>
-      {t.resale > 0 && <div className="text-xs text-ice/80">≈ {fmtMoney(t.resale)} resale value</div>}
+      {t.resale > 0 && <div className="led green mt-1 text-xs">{fmtMoney(t.resale)}</div>}
     </div>
   )
 }

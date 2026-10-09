@@ -1,7 +1,7 @@
 import { motion } from 'motion/react'
 import { useState } from 'react'
 import { teamInfo } from '../data/teams'
-import { releaseTheKraken } from '../lib/confetti'
+import { goalHorn } from '../lib/confetti'
 import { useStore } from '../lib/store'
 import type { Game } from '../lib/types'
 import { fmtDate, fmtMoney, fmtTime, gameStart, resaleFor, tally, upcomingGames, visibleGames } from '../lib/value'
@@ -25,109 +25,86 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }
   const wkTotal = t1.weekends + t2.weekends
   const pct1 = wkTotal === 0 ? 50 : Math.round((t1.weekends / wkTotal) * 100)
   const hot = upcoming
-    .filter((g) => !state.assignments[g.id] || state.assignments[g.id]!.owner !== 'sell')
+    .filter((g) => state.assignments[g.id]?.owner !== 'sell')
     .map((g) => ({ g, r: resaleFor(g, state) }))
     .filter((x) => x.r.value)
     .sort((a, b) => b.r.value! - a.r.value!)
     .slice(0, 3)
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       {next ? (
-        <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="glass relative overflow-hidden rounded-3xl p-5 sm:p-7">
-          <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-ice/10 blur-3xl" />
-          <div className="text-xs uppercase tracking-[0.25em] text-shadow">Next at Climate Pledge</div>
-          <div className="mt-2 flex items-center gap-4">
-            <OpponentBadge abbrev={next.opponent} size={72} />
-            <div className="min-w-0">
-              <div className="display text-4xl leading-none sm:text-6xl">
-                <span className="text-ice">SEA</span> <span className="text-shadow">vs</span> {next.opponent}
-              </div>
-              <div className="mt-1 truncate text-sm text-foam/80 sm:text-base">
-                {teamInfo(next.opponent).city} {teamInfo(next.opponent).name} · {fmtDate(next.date, { weekday: 'long', month: 'long', day: 'numeric' })} · {fmtTime(next.time)}
+        <motion.section initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="foil p-4 sm:p-6">
+          <div className="flex items-center justify-between">
+            <span className="tag bg-red text-white" style={{ textShadow: '1px 1px 0 #0a0a0a' }}>Next home game</span>
+            <span className="text-xs font-extrabold uppercase tracking-wider text-steel">Climate Pledge Arena</span>
+          </div>
+          <div className="mt-4 flex items-center gap-3 sm:gap-5">
+            <OpponentBadge abbrev="SEA" size={82} />
+            <div className="display-italic text-4xl text-red outline-text sm:text-6xl">VS</div>
+            <OpponentBadge abbrev={next.opponent} size={82} />
+            <div className="min-w-0 flex-1">
+              <div className="display text-3xl leading-none sm:text-5xl">{teamInfo(next.opponent).city} {teamInfo(next.opponent).name}</div>
+              <div className="mt-1 text-sm font-bold text-steel sm:text-base">
+                {fmtDate(next.date, { weekday: 'long', month: 'long', day: 'numeric' })} · {fmtTime(next.time)}
               </div>
               <div className="mt-2"><OwnerChip ownerId={state.assignments[next.id]?.owner} /></div>
             </div>
           </div>
           <div className="mt-5"><Countdown to={gameStart(next)} /></div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button onClick={() => setOpen(next)} className="rounded-full bg-ice px-4 py-2 text-sm font-bold text-deep shadow-glow transition hover:brightness-110 active:scale-95">
+          <div className="mt-5 flex flex-wrap gap-3">
+            <button onClick={() => setOpen(next)} className="btn90">
               {state.assignments[next.id] ? 'Change who’s going' : 'Who’s going?'}
             </button>
-            <button
-              onClick={releaseTheKraken}
-              className="rounded-full border border-alert/60 bg-alert/15 px-4 py-2 text-sm font-bold text-foam transition hover:bg-alert/30 active:scale-95"
-            >
-              🐙 Release the Kraken
-            </button>
+            <button onClick={goalHorn} className="btn90 red animate-siren">🚨 Goal horn</button>
           </div>
         </motion.section>
       ) : (
-        <section className="glass rounded-3xl p-6 text-center">
-          <div className="display text-4xl">Season complete</div>
-          <p className="text-shadow">See you next fall.</p>
+        <section className="card90 p-6 text-center">
+          <div className="display text-4xl">Season over</div>
+          <p className="font-semibold text-steel">See you next fall.</p>
         </section>
       )}
 
       {unassigned > 0 && (
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          onClick={() => goTo('schedule')}
-          className="glass flex w-full items-center justify-between rounded-2xl border-ice/30 p-4 text-left transition hover:bg-white/10"
-        >
+        <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} onClick={() => goTo('schedule')} className="card90 flex w-full items-center justify-between bg-yellow p-4 text-left">
           <div>
-            <div className="display text-2xl text-ice">{unassigned} upcoming {unassigned === 1 ? 'game' : 'games'} unassigned</div>
-            <div className="text-sm text-shadow">Tap a game in the schedule to decide who's going or whether to sell.</div>
+            <div className="display text-2xl">{unassigned} upcoming {unassigned === 1 ? 'game' : 'games'} unassigned</div>
+            <div className="text-sm font-semibold">Tap a game in the schedule to decide who's going or whether to sell.</div>
           </div>
-          <span className="display text-3xl text-ice">→</span>
+          <span className="display text-4xl">→</span>
         </motion.button>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2">
+      <section className="grid gap-4 sm:grid-cols-2">
         {[{ p: p1, t: t1 }, { p: p2, t: t2 }].map(({ p, t }) => (
-          <div key={p.id} className="glass rounded-2xl p-4" style={{ borderColor: `${p.color}44` }}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-2xl">{p.emoji}</span>
-                <span className="display text-2xl" style={{ color: p.color }}>{p.name}</span>
-              </div>
-              <div className="display text-3xl leading-none text-foam">{fmt(t.games)} <span className="text-sm text-shadow">games</span></div>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs text-shadow">
-              <Stat n={fmt(t.weekends)} label="weekend" />
-              <Stat n={fmt(t.weeknights)} label="weeknight" />
-              <Stat n={t.resale ? fmtMoney(t.resale) : '—'} label="resale est." />
-            </div>
-          </div>
+          <StatCard key={p.id} p={p} t={t} />
         ))}
       </section>
 
-      <section className="glass rounded-2xl p-4">
-        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-shadow">
-          <span>Weekend split</span>
-          <span>
-            {wkTotal === 0 ? 'No weekend games claimed yet' : Math.abs(t1.weekends - t2.weekends) < 1 ? 'Dead even 🤝' : t1.weekends > t2.weekends ? `${p1.name} has ${fmt(t1.weekends - t2.weekends)} more` : `${p2.name} has ${fmt(t2.weekends - t1.weekends)} more`}
+      <section className="card90 p-4">
+        <div className="flex items-center justify-between">
+          <span className="display text-xl">Weekend split</span>
+          <span className="text-xs font-extrabold uppercase tracking-wider text-steel">
+            {wkTotal === 0 ? 'No weekend games claimed yet' : Math.abs(t1.weekends - t2.weekends) < 1 ? 'Dead even' : t1.weekends > t2.weekends ? `${p1.name} +${fmt(t1.weekends - t2.weekends)}` : `${p2.name} +${fmt(t2.weekends - t1.weekends)}`}
           </span>
         </div>
-        <div className="mt-2 flex h-4 overflow-hidden rounded-full bg-abyss/60">
+        <div className="mt-2 flex h-6 overflow-hidden border-2 border-ink bg-white">
           <motion.div className="h-full" animate={{ width: `${pct1}%` }} style={{ background: p1.color }} transition={{ type: 'spring', stiffness: 80, damping: 20 }} />
+          <div className="h-full w-1 bg-ink" />
           <motion.div className="h-full flex-1" style={{ background: p2.color }} />
         </div>
-        <div className="mt-2 flex justify-between text-xs text-shadow">
-          <span>{p1.emoji} {fmt(t1.weekends)} weekend</span>
-          <span>{played}/{games.length} played</span>
-          <span>{fmt(t2.weekends)} weekend {p2.emoji}</span>
+        <div className="mt-2 flex justify-between text-xs font-extrabold uppercase tracking-wider">
+          <span style={{ color: p1.color }}>{p1.emoji} {fmt(t1.weekends)} weekend</span>
+          <span className="text-steel">{played}/{games.length} played</span>
+          <span style={{ color: p2.color }}>{fmt(t2.weekends)} weekend {p2.emoji}</span>
         </div>
       </section>
 
       {hot.length > 0 && (
         <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="display text-2xl text-ice">Worth the most right now</h2>
-            <button className="text-sm text-shadow hover:text-ice" onClick={() => goTo('ledger')}>Ledger →</button>
-          </div>
-          <div className="space-y-2">
+          <SectionHead title="Hot tickets" sub="Worth the most right now" action="Ledger →" onAction={() => goTo('ledger')} />
+          <div className="space-y-3">
             {hot.map(({ g }) => (
               <GameCard key={g.id} game={g} compact onClick={() => setOpen(g)} />
             ))}
@@ -137,11 +114,8 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }
 
       {upcoming.length > 1 && (
         <section>
-          <div className="mb-2 flex items-center justify-between">
-            <h2 className="display text-2xl text-ice">Coming up</h2>
-            <button className="text-sm text-shadow hover:text-ice" onClick={() => goTo('schedule')}>Full schedule →</button>
-          </div>
-          <div className="space-y-2">
+          <SectionHead title="Coming up" action="Full schedule →" onAction={() => goTo('schedule')} />
+          <div className="space-y-3">
             {upcoming.slice(1, 5).map((g) => (
               <GameCard key={g.id} game={g} compact onClick={() => setOpen(g)} />
             ))}
@@ -154,15 +128,46 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }
   )
 }
 
+export function SectionHead({ title, sub, action, onAction }: { title: string; sub?: string; action?: string; onAction?: () => void }) {
+  return (
+    <div className="mb-3 flex items-end justify-between border-b-[3px] border-ink pb-1">
+      <div>
+        <h2 className="display-italic text-3xl">{title}</h2>
+        {sub && <div className="text-xs font-extrabold uppercase tracking-wider text-steel">{sub}</div>}
+      </div>
+      {action && <button className="text-sm font-extrabold uppercase tracking-wider text-navy underline underline-offset-4" onClick={onAction}>{action}</button>}
+    </div>
+  )
+}
+
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1)
 }
 
-function Stat({ n, label }: { n: string; label: string }) {
+/** Hockey-card back: name band in the person's color, then a stat table. */
+function StatCard({ p, t }: { p: { name: string; emoji: string; color: string }; t: ReturnType<typeof tally> }) {
+  const rows: Array<[string, string]> = [
+    ['GP', fmt(t.games)],
+    ['WKND', fmt(t.weekends)],
+    ['WKNT', fmt(t.weeknights)],
+    ['RIVAL', fmt(t.rivals)],
+    ['VALUE', t.resale ? fmtMoney(t.resale) : '—'],
+  ]
   return (
-    <div className="rounded-xl bg-abyss/40 py-2">
-      <div className="display text-xl text-foam">{n}</div>
-      <div>{label}</div>
+    <div className="card90 overflow-hidden">
+      <div className="flex items-center gap-3 border-b-[3px] border-ink px-4 py-2" style={{ background: p.color }}>
+        <span className="text-2xl">{p.emoji}</span>
+        <span className="display-italic text-3xl text-white" style={{ textShadow: '2px 2px 0 #0a0a0a' }}>{p.name}</span>
+        <span className="ml-auto text-[10px] font-extrabold uppercase tracking-widest text-white/90">2026-27 season</span>
+      </div>
+      <div className="grid grid-cols-5 divide-x-2 divide-ink">
+        {rows.map(([k, v]) => (
+          <div key={k} className="px-1 py-2 text-center">
+            <div className="text-[10px] font-extrabold tracking-widest text-steel">{k}</div>
+            <div className="display text-2xl">{v}</div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

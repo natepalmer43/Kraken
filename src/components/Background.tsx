@@ -1,54 +1,30 @@
-import { useMemo } from 'react'
-
+/** Ice rink markings behind everything, rendered once and fixed. */
 export function Background() {
-  const bubbles = useMemo(
-    () =>
-      Array.from({ length: 22 }, (_, i) => {
-        const size = 6 + ((i * 37) % 26)
-        return {
-          left: `${(i * 47) % 100}%`,
-          size,
-          delay: `${-((i * 1.7) % 14)}s`,
-          dur: `${11 + ((i * 3) % 9)}s`,
-          dx: `${((i % 5) - 2) * 30}px`,
-          o: 0.25 + ((i * 13) % 40) / 100,
-        }
-      }),
-    [],
-  )
   return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {bubbles.map((b, i) => (
-        <span
-          key={i}
-          className="bubble"
-          style={{
-            left: b.left,
-            width: b.size,
-            height: b.size,
-            animationDelay: b.delay,
-            animationDuration: b.dur,
-            ['--dx' as string]: b.dx,
-            ['--o' as string]: b.o,
-          }}
-        />
-      ))}
-      <svg className="tentacle" style={{ left: '-6vw' }} viewBox="0 0 400 600" fill="none">
-        <path
-          d="M40 600 C 60 500, 140 480, 160 380 C 180 280, 90 240, 120 160 C 150 80, 260 60, 300 20"
-          stroke="#99D9D9" strokeWidth="46" strokeLinecap="round"
-        />
-        <path d="M40 600 C 60 500, 140 480, 160 380 C 180 280, 90 240, 120 160 C 150 80, 260 60, 300 20"
-          stroke="#001628" strokeWidth="18" strokeLinecap="round" strokeDasharray="2 40" />
+    <div aria-hidden className="rink">
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid slice" fill="none">
+        <g opacity="0.55" transform="rotate(-12 600 400)">
+          {/* center red line */}
+          <rect x="590" y="-200" width="20" height="1200" fill="#D7263D" />
+          <rect x="598" y="-200" width="4" height="1200" fill="#fff" opacity="0.6" />
+          {/* blue lines */}
+          <rect x="300" y="-200" width="22" height="1200" fill="#0B1F3A" opacity="0.8" />
+          <rect x="878" y="-200" width="22" height="1200" fill="#0B1F3A" opacity="0.8" />
+          {/* center circle */}
+          <circle cx="600" cy="400" r="150" stroke="#0B1F3A" strokeWidth="6" />
+          <circle cx="600" cy="400" r="8" fill="#0B1F3A" />
+          {/* faceoff circles */}
+          <circle cx="150" cy="200" r="110" stroke="#D7263D" strokeWidth="6" />
+          <circle cx="150" cy="200" r="7" fill="#D7263D" />
+          <circle cx="1050" cy="600" r="110" stroke="#D7263D" strokeWidth="6" />
+          <circle cx="1050" cy="600" r="7" fill="#D7263D" />
+          {/* goal creases */}
+          <path d="M -40 330 A 90 90 0 0 1 -40 470" stroke="#0B1F3A" strokeWidth="6" fill="#1FB5A8" fillOpacity="0.35" />
+          <path d="M 1240 330 A 90 90 0 0 0 1240 470" stroke="#0B1F3A" strokeWidth="6" fill="#1FB5A8" fillOpacity="0.35" />
+        </g>
       </svg>
-      <svg className="tentacle" style={{ right: '-8vw', animationDelay: '-4s', transform: 'scaleX(-1)' }} viewBox="0 0 400 600" fill="none">
-        <path
-          d="M60 600 C 40 480, 180 460, 170 340 C 160 230, 60 220, 90 130 C 120 50, 240 50, 320 10"
-          stroke="#68A2B9" strokeWidth="40" strokeLinecap="round"
-        />
-        <path d="M60 600 C 40 480, 180 460, 170 340 C 160 230, 60 220, 90 130 C 120 50, 240 50, 320 10"
-          stroke="#001628" strokeWidth="14" strokeLinecap="round" strokeDasharray="2 36" />
-      </svg>
+      <div className="halftone absolute -left-10 -top-10 h-72 w-72 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
+      <div className="halftone absolute -bottom-10 -right-10 h-96 w-96 opacity-40 [mask-image:radial-gradient(circle,black,transparent_70%)]" />
     </div>
   )
 }

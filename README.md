@@ -65,7 +65,17 @@ nothing is lost. If that request fails it falls back to the list bundled in
 `src/data/schedule.ts`, which was compiled from public listings and may have
 a date or two off. Use *Refresh from NHL* in Settings whenever you're online.
 
-## Run it
+## It's a website
+
+Every push to `main` builds the app and publishes it to GitHub Pages at
+<https://oleumextracts.github.io/Kraken/>. Open that on your phone, tap
+*Share → Add to Home Screen*, and it behaves like an installed app.
+
+To ship live resale prices or sync with the hosted build, add the keys from
+`.env.example` as repository secrets (Settings → Secrets → Actions) with the
+same names; the workflow passes them to the build.
+
+## Run it locally
 
 ```
 npm install
@@ -73,7 +83,7 @@ npm run dev       # http://localhost:5173
 npm run build     # static site in dist/
 ```
 
-Deploy `dist/` anywhere static (Vercel, Netlify, Cloudflare Pages, GitHub
-Pages). Add it to your phone's home screen and it feels like a native app.
+`dist/` is plain static files, so it also works on Vercel, Netlify or
+Cloudflare Pages if you'd rather host it there.
 
 Not affiliated with the Seattle Kraken or the NHL.

@@ -11,8 +11,8 @@ export function initialState(): AppState {
   return {
     version: 1,
     people: [
-      { id: 'p1', name: 'Nate', emoji: '🐙', color: '#99D9D9' },
-      { id: 'p2', name: 'Friend', emoji: '🦑', color: '#E9072B' },
+      { id: 'p1', name: 'Nate', emoji: '🐙', color: '#1FB5A8' },
+      { id: 'p2', name: 'Friend', emoji: '🦑', color: '#D7263D' },
     ],
     games: BUNDLED_SCHEDULE,
     scheduleSource: 'bundled',
@@ -124,7 +124,11 @@ function loadLocal(): AppState {
     const parsed = JSON.parse(raw) as Partial<AppState> & { draft?: unknown }
     if (parsed.version !== 1) return initialState()
     delete parsed.draft
-    return { ...initialState(), ...(parsed as AppState) }
+    const merged = { ...initialState(), ...(parsed as AppState) }
+    // Colors from the first (dark) design don't read on cream; map them to the current palette.
+    const legacy: Record<string, string> = { '#99D9D9': '#1FB5A8', '#E9072B': '#D7263D', '#68A2B9': '#0B1F3A', '#FFB81C': '#B8860B', '#7CFC00': '#2A9D3B', '#FF7AC6': '#FF4FA3', '#C084FC': '#5B2A86', '#FF8C42': '#F26419' }
+    merged.people = merged.people.map((p) => ({ ...p, color: legacy[p.color] ?? p.color })) as AppState['people']
+    return merged
   } catch {
     return initialState()
   }

@@ -14,15 +14,15 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 top-3 z-50 flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 top-3 z-[70] flex flex-col items-center gap-2 px-4">
         <AnimatePresence>
           {toasts.map((t) => (
             <motion.div
               key={t.id}
-              initial={{ y: -20, opacity: 0, scale: 0.95 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
               exit={{ y: -10, opacity: 0 }}
-              className={`glass-strong rounded-full px-4 py-2 text-sm font-medium ${t.kind === 'warn' ? 'text-amber-200' : 'text-ice'}`}
+              className={`jumbotron led px-4 py-2 text-[11px] uppercase sm:text-xs ${t.kind === 'warn' ? 'red' : ''}`}
             >
               {t.text}
             </motion.div>

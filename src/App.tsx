@@ -11,15 +11,18 @@ import { SEASON_LABEL } from './data/schedule'
 import { useStore } from './lib/store'
 import { clearShareHash, readShareFromUrl } from './lib/share'
 import type { AppState } from './lib/types'
+import { fmtDate, fmtMoney, fmtTime, resaleFor, upcomingGames } from './lib/value'
 
 type Tab = 'home' | 'schedule' | 'ledger' | 'settings'
 
-const TABS: Array<{ id: Tab; label: string; icon: string }> = [
-  { id: 'home', label: 'Home', icon: '🏠' },
-  { id: 'schedule', label: 'Schedule', icon: '📅' },
-  { id: 'ledger', label: 'Ledger', icon: '⚖️' },
-  { id: 'settings', label: 'Settings', icon: '⚙️' },
+const TABS: Array<{ id: Tab; label: string; short: string }> = [
+  { id: 'home', label: 'Home', short: '1ST' },
+  { id: 'schedule', label: 'Schedule', short: '2ND' },
+  { id: 'ledger', label: 'Ledger', short: '3RD' },
+  { id: 'settings', label: 'Settings', short: 'OT' },
 ]
+
+const ICON = `${import.meta.env.BASE_URL}kraken.svg`
 
 export default function App() {
   const { state, dispatch } = useStore()
@@ -34,28 +37,55 @@ export default function App() {
     toast('Board updated from share link')
   }
 
+  const ticker = upcomingGames(state)
+    .slice(0, 8)
+    .map((g) => {
+      const o = state.assignments[g.id]?.owner
+      const who = o === 'both' ? 'BOTH' : o === 'sell' ? 'SELLING' : o ? state.people.find((p) => p.id === o)!.name.toUpperCase() : 'OPEN'
+      const r = resaleFor(g, state).value
+      return `SEA VS ${g.opponent} · ${fmtDate(g.date, { month: 'short', day: 'numeric' }).toUpperCase()} ${fmtTime(g.time)} · ${who}${r ? ` · ${fmtMoney(r)}` : ''}`
+    })
+  const tickerText = (ticker.length ? ticker : ['NO UPCOMING HOME GAMES']).join('   ★   ') + '   ★   '
+
   return (
-    <div className="min-h-dvh pb-24 sm:pb-8">
+    <div className="scanlines min-h-dvh pb-28 sm:pb-10">
       <Background />
-      <header className="mx-auto flex max-w-3xl items-center justify-between px-4 pb-2 pt-[max(1rem,env(safe-area-inset-top))]">
-        <div className="flex items-center gap-3">
-          <img src="/kraken.svg" alt="" className="h-10 w-10 rounded-xl shadow-glow" />
-          <div>
-            <div className="display text-3xl leading-none"><span className="ice-text">Release the Tickets</span></div>
-            <div className="text-[11px] uppercase tracking-[0.25em] text-shadow">{state.people[0].emoji} {state.people[0].name} & {state.people[1].emoji} {state.people[1].name} · {SEASON_LABEL}</div>
+      <div className="stripe-band h-3 border-b-[3px] border-ink" />
+
+      <header className="mx-auto max-w-3xl px-4 pt-4">
+        <div className="jumbotron p-3 sm:p-4">
+          <div className="flex items-center gap-3">
+            <img src={ICON} alt="" className="h-12 w-12 border-2 border-silver/40 sm:h-14 sm:w-14" />
+            <div className="min-w-0 flex-1">
+              <div className="led text-[13px] leading-tight sm:text-xl">RELEASE THE TICKETS</div>
+              <div className="pixel mt-1 text-[8px] text-silver/80 sm:text-[9px]">
+                {state.people[0].emoji} {state.people[0].name.toUpperCase()} &amp; {state.people[1].emoji} {state.people[1].name.toUpperCase()} · {SEASON_LABEL}
+              </div>
+            </div>
+            <div className="hidden text-right sm:block">
+              <div className="pixel text-[8px] text-silver/70">SEATTLE</div>
+              <div className="led red text-sm">KRAKEN</div>
+            </div>
+          </div>
+          <div className="mt-3 overflow-hidden border-t border-silver/20 pt-2">
+            <div className="ticker-track led text-[9px] sm:text-[10px]" style={{ animationDuration: `${Math.max(20, ticker.length * 9)}s` }}>
+              <span className="whitespace-pre">{tickerText}</span>
+              <span className="whitespace-pre" aria-hidden>{tickerText}</span>
+            </div>
           </div>
         </div>
-        <nav className="glass hidden items-center gap-1 rounded-full p-1 sm:flex">
+
+        <nav className="mt-4 hidden gap-2 sm:flex">
           {TABS.map((t) => (
-            <button key={t.id} onClick={() => setTab(t.id)} className={`relative rounded-full px-3 py-1.5 text-sm font-semibold transition ${tab === t.id ? 'text-deep' : 'text-foam/80 hover:text-foam'}`}>
-              {tab === t.id && <motion.span layoutId="pill" className="absolute inset-0 rounded-full bg-ice" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-              <span className="relative">{t.label}</span>
+            <button key={t.id} onClick={() => setTab(t.id)} className={`btn90 flex-1 ${tab === t.id ? 'red' : 'white'}`}>
+              <span className="pixel mr-2 text-[8px] opacity-70">{t.short}</span>
+              {t.label}
             </button>
           ))}
         </nav>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 pt-3">
+      <main className="mx-auto max-w-3xl px-4 pt-5">
         <AnimatePresence mode="wait">
           <motion.div key={tab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.18 }}>
             {tab === 'home' && <HomeTab goTo={setTab} />}
@@ -66,12 +96,11 @@ export default function App() {
         </AnimatePresence>
       </main>
 
-      <nav className="glass-strong fixed inset-x-3 bottom-3 z-30 flex justify-around rounded-3xl px-1 py-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] sm:hidden">
+      <nav className="fixed inset-x-3 bottom-3 z-30 flex gap-1 border-[3px] border-ink bg-ink p-1 shadow-hard sm:hidden" style={{ paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))' }}>
         {TABS.map((t) => (
-          <button key={t.id} onClick={() => setTab(t.id)} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-2xl py-1.5 text-[10px] font-semibold">
-            {tab === t.id && <motion.span layoutId="mobile-pill" className="absolute inset-0 rounded-2xl bg-ice/15" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-            <span className={`relative text-xl transition ${tab === t.id ? 'scale-110' : 'opacity-70'}`}>{t.icon}</span>
-            <span className={`relative ${tab === t.id ? 'text-ice' : 'text-shadow'}`}>{t.label}</span>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`flex flex-1 flex-col items-center py-1.5 ${tab === t.id ? 'bg-red' : ''}`}>
+            <span className={`pixel text-[8px] ${tab === t.id ? 'text-white' : 'text-amber'}`}>{t.short}</span>
+            <span className={`display mt-0.5 text-sm ${tab === t.id ? 'text-white' : 'text-silver'}`}>{t.label}</span>
           </button>
         ))}
       </nav>
@@ -79,13 +108,13 @@ export default function App() {
       <Sheet open={Boolean(incoming)} onClose={() => { setIncoming(null); clearShareHash() }} title="Incoming board">
         {incoming && (
           <>
-            <p className="text-sm text-foam/80">
-              {incoming.people[0].emoji} {incoming.people[0].name} & {incoming.people[1].emoji} {incoming.people[1].name} shared their board, last updated {new Date(incoming.updatedAt).toLocaleString()}.
+            <p className="text-sm font-semibold">
+              {incoming.people[0].emoji} {incoming.people[0].name} &amp; {incoming.people[1].emoji} {incoming.people[1].name} shared their board, last updated {new Date(incoming.updatedAt).toLocaleString()}.
               Replace what you have here with it?
             </p>
-            <div className="mt-4 flex gap-2">
-              <button onClick={acceptShare} className="flex-1 rounded-full bg-ice px-4 py-3 font-extrabold text-deep">Use shared board</button>
-              <button onClick={() => { setIncoming(null); clearShareHash() }} className="rounded-full bg-white/5 px-4 py-3 font-semibold">Keep mine</button>
+            <div className="mt-4 flex gap-3">
+              <button onClick={acceptShare} className="btn90 flex-1">Use shared board</button>
+              <button onClick={() => { setIncoming(null); clearShareHash() }} className="btn90 white">Keep mine</button>
             </div>
           </>
         )}
@@ -93,3 +122,4 @@ export default function App() {
     </div>
   )
 }
+

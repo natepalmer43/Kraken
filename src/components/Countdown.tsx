@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+/** Jumbotron-style LED countdown. */
 export function Countdown({ to }: { to: Date }) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
@@ -12,22 +13,20 @@ export function Countdown({ to }: { to: Date }) {
   const m = Math.floor((diff % 3600000) / 60000)
   const s = Math.floor((diff % 60000) / 1000)
   const cells = [
-    [d, 'days'],
-    [h, 'hrs'],
-    [m, 'min'],
-    [s, 'sec'],
+    [d, 'DAYS'],
+    [h, 'HRS'],
+    [m, 'MIN'],
+    [s, 'SEC'],
   ] as const
   return (
-    <div className="flex items-end gap-2 sm:gap-3">
+    <div className="jumbotron inline-flex items-end gap-2 px-3 py-2 sm:gap-3 sm:px-4 sm:py-3">
       {cells.map(([v, label], i) => (
         <div key={label} className="flex items-end gap-2 sm:gap-3">
           <div className="text-center">
-            <div className="display glass rounded-xl px-2 py-1 text-3xl tabular-nums leading-none text-ice sm:px-3 sm:text-5xl">
-              {String(v).padStart(2, '0')}
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-widest text-shadow">{label}</div>
+            <div className="led text-2xl sm:text-4xl">{String(v).padStart(2, '0')}</div>
+            <div className="pixel mt-1 text-[7px] text-silver/70 sm:text-[8px]">{label}</div>
           </div>
-          {i < cells.length - 1 && <span className="display mb-5 text-2xl text-shadow/60">:</span>}
+          {i < cells.length - 1 && <span className="led blink mb-4 text-xl sm:mb-5 sm:text-3xl">:</span>}
         </div>
       ))}
     </div>

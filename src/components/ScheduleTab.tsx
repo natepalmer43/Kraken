@@ -45,7 +45,7 @@ export function ScheduleTab() {
   const chips: Array<{ id: Filter; label: string }> = [
     { id: 'upcoming', label: 'Upcoming' },
     { id: 'open', label: `Unassigned${openCount ? ` (${openCount})` : ''}` },
-    { id: 'weekend', label: '🎉 Weekend' },
+    { id: 'weekend', label: '★ Weekend' },
     { id: 'weeknight', label: 'Weeknight' },
     { id: 'sell', label: '💸 Selling' },
     { id: 'p1', label: `${state.people[0].emoji} ${state.people[0].name}` },
@@ -55,34 +55,31 @@ export function ScheduleTab() {
 
   return (
     <div>
-      <div className="scroll-hide -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1">
+      <div className="scroll-hide -mx-4 mb-4 flex gap-2 overflow-x-auto px-4 py-1">
         {chips.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => setFilter(c.id)}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-sm font-medium transition ${filter === c.id ? 'bg-ice text-deep' : 'glass text-foam/80 hover:bg-white/10'}`}
-          >
+          <button key={c.id} onClick={() => setFilter(c.id)} className={`btn90 sm shrink-0 ${filter === c.id ? 'navy' : 'white'}`}>
             {c.label}
           </button>
         ))}
       </div>
 
       {state.scheduleSource === 'bundled' && (
-        <div className="mb-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100">
-          Showing the built-in schedule. Open Settings → “Refresh from NHL” once you're online to pull official dates and times.
+        <div className="card90-flat mb-4 bg-yellow px-3 py-2 text-xs font-bold">
+          Built-in schedule. Open Settings → “Refresh from NHL” once you're online to pull official dates and times.
         </div>
       )}
 
-      {groups.length === 0 && <div className="glass rounded-2xl p-8 text-center text-shadow">Nothing here. Try another filter.</div>}
+      {groups.length === 0 && <div className="card90 p-8 text-center font-semibold text-steel">Nothing here. Try another filter.</div>}
 
-      <div className="space-y-6">
+      <div className="space-y-7">
         {groups.map(([k, list]) => (
           <section key={k}>
-            <h2 className="display sticky top-0 z-10 -mx-4 mb-2 bg-gradient-to-b from-deep via-deep/95 to-transparent px-4 pb-3 pt-2 text-2xl text-ice">
-              {monthLabel(k)} <span className="text-base text-shadow">· {list.length} {list.length === 1 ? 'game' : 'games'}</span>
+            <h2 className="sticky top-0 z-10 -mx-4 mb-3 bg-ice/95 px-4 pb-2 pt-2 backdrop-blur-sm">
+              <span className="display-italic border-b-[3px] border-ink text-3xl">{monthLabel(k)}</span>
+              <span className="ml-2 text-xs font-extrabold uppercase tracking-wider text-steel">{list.length} {list.length === 1 ? 'game' : 'games'}</span>
             </h2>
             <AnimatePresence initial={false}>
-              <motion.div layout className="space-y-2">
+              <motion.div layout className="space-y-3">
                 {list.map((g) => (
                   <GameCard key={g.id} game={g} onClick={() => setOpen(g)} />
                 ))}
