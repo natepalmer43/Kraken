@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { PLAN_VERSION, TICKET_PLAN } from '../data/schedule'
+import { PLAN_DEFAULT_ASSIGNMENTS, PLAN_VERSION, TICKET_PLAN } from '../data/schedule'
 import { fetchKrakenHomeSchedule, remapByGame } from './nhl'
 import { SEATGEEK_AVAILABLE, fetchResaleQuotes } from './seatgeek'
 import { SYNC_AVAILABLE, loadBoard, saveBoard, subscribeBoard } from './supabase'
@@ -18,7 +18,7 @@ export function initialState(): AppState {
     planVersion: PLAN_VERSION,
     scheduleSource: 'bundled',
     scheduleFetchedAt: null,
-    assignments: {},
+    assignments: { ...PLAN_DEFAULT_ASSIGNMENTS },
     overrides: {},
     resale: {},
     trades: [],
@@ -142,13 +142,15 @@ function migratePlan(s: AppState): AppState {
   if (s.planVersion === PLAN_VERSION) return s
   const manual = s.games.filter((g) => g.source === 'manual')
   const games = [...TICKET_PLAN, ...manual]
+  const assignments = remapByGame(s.games, games, s.assignments)
+  for (const [id, a] of Object.entries(PLAN_DEFAULT_ASSIGNMENTS)) assignments[id] ??= a
   return {
     ...s,
     games,
     planVersion: PLAN_VERSION,
     scheduleSource: 'bundled',
     scheduleFetchedAt: null,
-    assignments: remapByGame(s.games, games, s.assignments),
+    assignments,
     overrides: remapByGame(s.games, games, s.overrides),
   }
 }

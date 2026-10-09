@@ -10,7 +10,7 @@ on the resale market, and count down to the next night at Climate Pledge.
   weekend/weeknight count, a weekend-split meter, the games worth the most on
   the resale market right now, and a big *Release the Kraken* button
   (confetti, obviously).
-- **Schedule** – the 19 games on your plan, grouped by month, with opponent
+- **Schedule** – the games on your plan, grouped by month, with opponent
   badges, start times, a Weekend/Weeknight tag and the average resale price.
   Filter by unassigned, weekend, weeknight, selling, or person. Tap a game to
   claim it, mark it "both of us", mark it for sale, add a note, or edit the
@@ -59,7 +59,7 @@ on both phones instantly.
 
 ## Schedule data
 
-The app ships with your 19-game plan exactly as it appears in Ticketmaster
+The app ships with your 20-game plan (opening night plus the 19 in Ticketmaster)
 (dates, opponents and start times), in `src/data/schedule.ts`. Edit that list
 and bump `PLAN_VERSION` if the plan changes; saved boards migrate
 automatically and keep who's going to what. Bought extra tickets for one

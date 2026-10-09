@@ -1,14 +1,15 @@
-import type { Game } from '../lib/types'
+import type { Assignment, Game } from '../lib/types'
 
 /**
  * The 19-game 2026-27 ticket plan, exactly as it appears in the Ticketmaster
  * account (Climate Pledge Arena). Times are local Seattle time.
  * Bump PLAN_VERSION whenever this list changes so saved boards pick it up.
  */
-export const PLAN_VERSION = 2
+export const PLAN_VERSION = 3
 
 const raw: Array<[string, string, string, string?]> = [
   // date, opponent abbrev, local time, promo/note
+  ['2026-10-04', 'CGY', '17:00', 'Home Opener'],
   ['2026-10-20', 'DET', '18:40'],
   ['2026-10-28', 'TOR', '19:00'],
   ['2026-11-07', 'NYR', '14:00'],
@@ -39,6 +40,11 @@ export const TICKET_PLAN: Game[] = raw.map(([date, opp, time, promo]) => ({
   gameType: 2,
   source: 'bundled',
 }))
+
+/** Who went to games that were already decided before the app existed. Applied once per board. */
+export const PLAN_DEFAULT_ASSIGNMENTS: Record<string, Assignment> = {
+  'b-2026-10-04-CGY': { owner: 'p2', note: 'Opening night' },
+}
 
 /** @deprecated use TICKET_PLAN */
 export const BUNDLED_SCHEDULE = TICKET_PLAN
