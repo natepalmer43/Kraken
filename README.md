@@ -73,7 +73,7 @@ schedule API and corrects any start time that moved. It never adds games.
 ## It's a website
 
 Every push to `main` builds the app and publishes it to GitHub Pages at
-<https://oleumextracts.github.io/Kraken/>. Open that on your phone, tap
+<https://natepalmer43.github.io/Kraken/>. Open that on your phone, tap
 *Share → Add to Home Screen*, and it behaves like an installed app.
 
 To ship live resale prices or sync with the hosted build, add the keys from
