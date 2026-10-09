@@ -115,13 +115,13 @@ export function SettingsTab() {
       </section>
 
       <section>
-        <SectionHead title="Schedule" />
+        <SectionHead title="Your plan" sub="The games on your tickets" />
         <div className="card90 p-4">
           <div className="flex items-center justify-between gap-3 text-sm">
             <div>
-              <div className="font-extrabold">{state.games.filter((g) => g.gameType === 2 && !state.overrides[g.id]?.hidden).length} regular-season home games</div>
+              <div className="font-extrabold">{state.games.filter((g) => !state.overrides[g.id]?.hidden).length} games in your plan</div>
               <div className="text-xs font-semibold text-steel">
-                Source: {state.scheduleSource === 'nhl' ? `NHL API · ${new Date(state.scheduleFetchedAt!).toLocaleString()}` : 'built-in list'}
+                {state.scheduleSource === 'nhl' ? `Start times verified with NHL.com · ${new Date(state.scheduleFetchedAt!).toLocaleString()}` : 'Dates and times from your Ticketmaster account'}
               </div>
             </div>
             <button
@@ -130,15 +130,15 @@ export function SettingsTab() {
                 setBusy(true)
                 const r = await refreshSchedule()
                 setBusy(false)
-                toast(r === 'ok' ? 'Schedule updated from NHL.com' : 'Could not reach the NHL API right now', r === 'ok' ? 'ok' : 'warn')
+                toast(r === 'ok' ? 'Start times verified with NHL.com' : 'Could not reach the NHL API right now', r === 'ok' ? 'ok' : 'warn')
               }}
               className="btn90 sm shrink-0"
             >
-              {busy ? 'Refreshing…' : '↻ Refresh from NHL'}
+              {busy ? 'Checking…' : '↻ Verify times'}
             </button>
           </div>
           <details className="card90-flat mt-3 p-3 text-sm">
-            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-wider">Add a game manually</summary>
+            <summary className="cursor-pointer text-xs font-extrabold uppercase tracking-wider">Add a game (bought extra tickets?)</summary>
             <div className="mt-2 grid grid-cols-2 gap-2">
               <input type="date" className="input90" value={newGame.date} onChange={(e) => setNewGame({ ...newGame, date: e.target.value })} />
               <input type="time" className="input90" value={newGame.time} onChange={(e) => setNewGame({ ...newGame, time: e.target.value })} />
@@ -153,9 +153,9 @@ export function SettingsTab() {
           </details>
           {hidden.length > 0 && (
             <div className="mt-3 text-xs font-semibold text-steel">
-              {hidden.length} hidden game{hidden.length > 1 ? 's' : ''}.{' '}
+              {hidden.length} game{hidden.length > 1 ? 's' : ''} removed from the board.{' '}
               <button className="font-extrabold text-navy underline underline-offset-2" onClick={() => hidden.forEach((g) => dispatch({ type: 'override', gameId: g.id, patch: { hidden: false } }))}>
-                Unhide all
+                Restore
               </button>
             </div>
           )}

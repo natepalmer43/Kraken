@@ -61,6 +61,9 @@ export interface AppState {
   version: 1
   people: [Person, Person]
   games: Game[]
+  /** which revision of the built-in ticket plan this board was seeded from */
+  planVersion: number
+  /** 'nhl' once start times have been verified against the NHL schedule API */
   scheduleSource: 'bundled' | 'nhl'
   scheduleFetchedAt: string | null
   assignments: Record<string, Assignment>

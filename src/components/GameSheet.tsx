@@ -137,7 +137,7 @@ export function GameSheet({ game, onClose }: { game: Game | null; onClose: () =>
                 onClose()
               }}
             >
-              HIDE THIS GAME FROM THE BOARD
+              REMOVE THIS GAME FROM THE BOARD
             </button>
           </div>
         )}

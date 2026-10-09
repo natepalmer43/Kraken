@@ -63,11 +63,6 @@ export function ScheduleTab() {
         ))}
       </div>
 
-      {state.scheduleSource === 'bundled' && (
-        <div className="card90-flat mb-4 bg-yellow px-3 py-2 text-xs font-bold">
-          Built-in schedule. Open Settings → “Refresh from NHL” once you're online to pull official dates and times.
-        </div>
-      )}
 
       {groups.length === 0 && <div className="card90 p-8 text-center font-semibold text-steel">Nothing here. Try another filter.</div>}
 

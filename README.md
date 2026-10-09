@@ -10,7 +10,7 @@ on the resale market, and count down to the next night at Climate Pledge.
   weekend/weeknight count, a weekend-split meter, the games worth the most on
   the resale market right now, and a big *Release the Kraken* button
   (confetti, obviously).
-- **Schedule** – every 2026-27 home game grouped by month with opponent
+- **Schedule** – the 19 games on your plan, grouped by month, with opponent
   badges, start times, a Weekend/Weeknight tag and the average resale price.
   Filter by unassigned, weekend, weeknight, selling, or person. Tap a game to
   claim it, mark it "both of us", mark it for sale, add a note, or edit the
@@ -59,11 +59,15 @@ on both phones instantly.
 
 ## Schedule data
 
-On load the app pulls the live Kraken home schedule from
-`api-web.nhle.com` and re-keys your assignments by date and opponent so
-nothing is lost. If that request fails it falls back to the list bundled in
-`src/data/schedule.ts`, which was compiled from public listings and may have
-a date or two off. Use *Refresh from NHL* in Settings whenever you're online.
+The app ships with your 19-game plan exactly as it appears in Ticketmaster
+(dates, opponents and start times), in `src/data/schedule.ts`. Edit that list
+and bump `PLAN_VERSION` if the plan changes; saved boards migrate
+automatically and keep who's going to what. Bought extra tickets for one
+night? Add it from Settings. Sold the pair and want it gone? Remove it from
+the game sheet.
+
+*Verify times* in Settings checks your games against the NHL's public
+schedule API and corrects any start time that moved. It never adds games.
 
 ## It's a website
 

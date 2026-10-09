@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
-import { BUNDLED_SCHEDULE } from '../data/schedule'
+import { PLAN_VERSION, TICKET_PLAN } from '../data/schedule'
 import { fetchKrakenHomeSchedule, remapByGame } from './nhl'
 import { SEATGEEK_AVAILABLE, fetchResaleQuotes } from './seatgeek'
 import { SYNC_AVAILABLE, loadBoard, saveBoard, subscribeBoard } from './supabase'
@@ -14,7 +14,8 @@ export function initialState(): AppState {
       { id: 'p1', name: 'Nate', emoji: '🐙', color: '#1FB5A8' },
       { id: 'p2', name: 'Friend', emoji: '🦑', color: '#D7263D' },
     ],
-    games: BUNDLED_SCHEDULE,
+    games: TICKET_PLAN,
+    planVersion: PLAN_VERSION,
     scheduleSource: 'bundled',
     scheduleFetchedAt: null,
     assignments: {},
@@ -47,7 +48,7 @@ function stamp(s: AppState): AppState {
 export function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case 'replace':
-      return { ...initialState(), ...action.state, room: action.keepRoom ? state.room : action.state.room }
+      return migratePlan({ ...initialState(), ...action.state, room: action.keepRoom ? state.room : action.state.room })
     case 'setPerson':
       return stamp({
         ...state,
@@ -80,16 +81,14 @@ export function reducer(state: AppState, action: Action): AppState {
     case 'addGame':
       return stamp({ ...state, games: [...state.games, action.game] })
     case 'setSchedule': {
-      const manual = state.games.filter((g) => g.source === 'manual')
-      const games = [...action.games, ...manual]
-      return stamp({
-        ...state,
-        games,
-        scheduleSource: 'nhl',
-        scheduleFetchedAt: new Date().toISOString(),
-        assignments: remapByGame(state.games, games, state.assignments),
-        overrides: remapByGame(state.games, games, state.overrides),
+      // The NHL feed covers every home game; we only own some. Update start
+      // times for games we hold (matched by date + opponent) and never add any.
+      const byKey = new Map(action.games.map((g) => [`${g.date}|${g.opponent}`, g]))
+      const games = state.games.map((g) => {
+        const live = byKey.get(`${g.date}|${g.opponent}`)
+        return live && live.time && live.time !== g.time ? { ...g, time: live.time } : g
       })
+      return { ...state, games, scheduleSource: 'nhl', scheduleFetchedAt: new Date().toISOString() }
     }
     case 'setResale':
       // Resale quotes are market data, not a decision: don't bump updatedAt so they never win a sync conflict.
@@ -128,9 +127,25 @@ function loadLocal(): AppState {
     // Colors from the first (dark) design don't read on cream; map them to the current palette.
     const legacy: Record<string, string> = { '#99D9D9': '#1FB5A8', '#E9072B': '#D7263D', '#68A2B9': '#0B1F3A', '#FFB81C': '#B8860B', '#7CFC00': '#2A9D3B', '#FF7AC6': '#FF4FA3', '#C084FC': '#5B2A86', '#FF8C42': '#F26419' }
     merged.people = merged.people.map((p) => ({ ...p, color: legacy[p.color] ?? p.color })) as AppState['people']
-    return merged
+    return migratePlan(merged)
   } catch {
     return initialState()
+  }
+}
+
+/** Swap in the current ticket plan, carrying assignments across by date + opponent. */
+function migratePlan(s: AppState): AppState {
+  if (s.planVersion === PLAN_VERSION) return s
+  const manual = s.games.filter((g) => g.source === 'manual')
+  const games = [...TICKET_PLAN, ...manual]
+  return {
+    ...s,
+    games,
+    planVersion: PLAN_VERSION,
+    scheduleSource: 'bundled',
+    scheduleFetchedAt: null,
+    assignments: remapByGame(s.games, games, s.assignments),
+    overrides: remapByGame(s.games, games, s.overrides),
   }
 }
 

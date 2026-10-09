@@ -60,8 +60,8 @@ export function remapByGame<T>(oldGames: Game[], newGames: Game[], map: Record<s
   const out: Record<string, T> = {}
   for (const [id, val] of Object.entries(map)) {
     const old = oldById.get(id)
-    const target = old ? newByKey.get(keyOf(old)) : undefined
-    out[target ?? id] = val
+    const target = old ? newByKey.get(keyOf(old)) : newGames.some((g) => g.id === id) ? id : undefined
+    if (target) out[target] = val
   }
   return out
 }
