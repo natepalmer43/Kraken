@@ -31,7 +31,7 @@ export default function App() {
   const [incoming, setIncoming] = useState<AppState | null>(() => readShareFromUrl())
 
   const acceptShare = () => {
-    if (incoming) dispatch({ type: 'replace', state: incoming, keepRoom: true })
+    if (incoming) dispatch({ type: 'replace', state: incoming })
     setIncoming(null)
     clearShareHash()
     toast('Board updated from share link')

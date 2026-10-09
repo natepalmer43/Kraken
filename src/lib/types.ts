@@ -71,6 +71,5 @@ export interface AppState {
   /** keyed by `${date}|${opponent}` so it survives schedule refreshes */
   resale: Record<string, ResaleQuote>
   trades: Trade[]
-  room: string | null
   updatedAt: string
 }

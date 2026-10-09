@@ -16,7 +16,6 @@ export function SettingsTab() {
   const { state, dispatch, refreshSchedule, refreshResale, syncStatus, resaleStatus } = useStore()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
-  const [roomInput, setRoomInput] = useState(state.room ?? '')
   const [newGame, setNewGame] = useState<{ date: string; time: string; opponent: string; promo: string }>({ date: '', time: '19:00', opponent: 'VAN', promo: '' })
   const hidden = state.games.filter((g) => state.overrides[g.id]?.hidden)
 
@@ -44,7 +43,7 @@ export function SettingsTab() {
       try {
         const parsed = JSON.parse(txt)
         if (parsed.version !== 1) throw new Error()
-        dispatch({ type: 'replace', state: parsed, keepRoom: true })
+        dispatch({ type: 'replace', state: parsed })
         toast('Board imported')
       } catch {
         toast('That file is not a valid board export', 'warn')
@@ -92,21 +91,9 @@ export function SettingsTab() {
               <SyncDot status={syncStatus} />
             </div>
             {SYNC_AVAILABLE ? (
-              <>
-                <p className="pixel mt-2 text-[8px] leading-relaxed text-silver/80">PICK A SECRET ROOM CODE. BOTH OF YOU ENTER THE SAME ONE.</p>
-                <div className="mt-2 flex gap-2">
-                  <input className="input90 flex-1" placeholder="e.g. buoy-2026" value={roomInput} onChange={(e) => setRoomInput(e.target.value.trim().toLowerCase())} />
-                  <button
-                    onClick={() => {
-                      dispatch({ type: 'setRoom', room: roomInput || null })
-                      toast(roomInput ? `Joined room “${roomInput}”` : 'Left room')
-                    }}
-                    className="btn90 sm"
-                  >
-                    {state.room ? 'Update' : 'Join'}
-                  </button>
-                </div>
-              </>
+              <p className="pixel mt-2 text-[8px] leading-relaxed text-silver/80">
+                {syncStatus === 'live' ? 'BOTH PHONES ARE ON THE SAME BOARD. CHANGES SHOW UP INSTANTLY.' : syncStatus === 'error' ? 'COULD NOT REACH THE BOARD. CHANGES ARE SAVED HERE AND SYNC WHEN IT IS BACK.' : 'CONNECTING TO THE SHARED BOARD…'}
+              </p>
             ) : (
               <p className="pixel mt-2 text-[8px] leading-relaxed text-silver/80">OFF. ADD SUPABASE KEYS (SEE README) AND BOTH PHONES UPDATE LIVE.</p>
             )}
