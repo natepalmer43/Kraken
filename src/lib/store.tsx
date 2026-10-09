@@ -12,7 +12,7 @@ export function initialState(): AppState {
     version: 1,
     people: [
       { id: 'p1', name: 'Nate', emoji: '🐙', color: '#1FB5A8' },
-      { id: 'p2', name: 'Ian', emoji: '🦑', color: '#D7263D' },
+      { id: 'p2', name: 'Jerreau', emoji: '🦑', color: '#D7263D' },
     ],
     games: TICKET_PLAN,
     planVersion: PLAN_VERSION,
@@ -129,7 +129,7 @@ function loadLocal(): AppState {
     merged.people = merged.people.map((p) => ({
       ...p,
       color: legacy[p.color] ?? p.color,
-      name: p.id === 'p2' && p.name === 'Friend' ? 'Ian' : p.name,
+      name: p.id === 'p2' && (p.name === 'Friend' || p.name === 'Ian') ? 'Jerreau' : p.name,
     })) as AppState['people']
     return migratePlan(merged)
   } catch {
