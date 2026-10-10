@@ -9,9 +9,10 @@ import { Countdown } from './Countdown'
 import { GameCard, OwnerChip } from './GameCard'
 import { GameSheet } from './GameSheet'
 import { OpponentBadge } from './OpponentBadge'
+import { RecordStrip } from './ScoutingReport'
 
 export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }) {
-  const { state } = useStore()
+  const { state, standings } = useStore()
   const [open, setOpen] = useState<Game | null>(null)
   const games = visibleGames(state)
   const now = new Date()
@@ -51,6 +52,11 @@ export function HomeTab({ goTo }: { goTo: (tab: 'schedule' | 'ledger') => void }
               <div className="mt-2"><OwnerChip ownerId={state.assignments[next.id]?.owner} /></div>
             </div>
           </div>
+          {standings && (
+            <div className="mt-4">
+              <RecordStrip sea={standings.teams.SEA} opp={standings.teams[next.opponent]} opponent={next.opponent} />
+            </div>
+          )}
           <div className="mt-5"><Countdown to={gameStart(next)} /></div>
           <div className="mt-5 flex flex-wrap gap-3">
             <button onClick={() => setOpen(next)} className="btn90">

@@ -11,7 +11,8 @@ on the resale market, and count down to the next night at Climate Pledge.
   the resale market right now, and a big *Release the Kraken* button
   (confetti, obviously).
 - **Schedule** – the games on your plan, grouped by month, with opponent
-  badges, start times, a Weekend/Weeknight tag and the average resale price.
+  badges and records, start times, a Weekend/Weeknight tag and the average
+  resale price.
   Filter by unassigned, weekend, weeknight, selling, or person. Tap a game to
   claim it, mark it "both of us", mark it for sale, add a note, or edit the
   resale number.
@@ -19,7 +20,20 @@ on the resale market, and count down to the next night at Climate Pledge.
   marked for sale (with what it sold for), swap history, and achievements
   (Weekend Warrior, Tuesday Hero, Rivalry Hoarder…).
 - **Settings** – names, emoji, colors, share link, backup/restore, manual
-  games, and refreshes for the NHL schedule and resale prices.
+  games, and refreshes for the NHL schedule, standings and resale prices.
+
+### Records and scouting reports
+
+The header shows the Kraken's live record and standing, every game card shows
+the opponent's record, and the next-game panel on Home shows both side by
+side. Numbers come straight from the NHL's public standings feed on load (and
+on *Refresh NHL data* in Settings), so nothing to maintain.
+
+Tap a game and you get a **scouting report**: a headline, why the game matters
+right now, any history with the Kraken, and players to watch. Those are
+written by hand in `src/data/blurbs.ts`, one entry per game keyed by
+`date|opponent`. To update one mid-season, edit the text, bump its `updated`
+date, and push to `main`; GitHub Pages redeploys in a couple of minutes.
 
 ### Resale prices
 

@@ -1,5 +1,6 @@
 import { motion } from 'motion/react'
 import { teamInfo } from '../data/teams'
+import { fmtRecord } from '../lib/nhl'
 import { useStore } from '../lib/store'
 import type { Game } from '../lib/types'
 import { fmtDate, fmtMoney, fmtTime, isWeekend, resaleFor } from '../lib/value'
@@ -29,8 +30,9 @@ export function DayChip({ game }: { game: Game }) {
 
 /** A horizontal 90s trading card. */
 export function GameCard({ game, onClick, compact, highlight }: { game: Game; onClick?: () => void; compact?: boolean; highlight?: boolean }) {
-  const { state } = useStore()
+  const { state, standings } = useStore()
   const t = teamInfo(game.opponent)
+  const opp = standings?.teams[game.opponent]
   const [c1, c2] = t.colors
   const a = state.assignments[game.id]
   const owner = a?.owner
@@ -56,6 +58,7 @@ export function GameCard({ game, onClick, compact, highlight }: { game: Game; on
         <div className={`min-w-0 flex-1 ${compact ? 'pl-2' : 'pl-1'}`}>
           <div className="flex items-baseline gap-2">
             <span className={`display ${compact ? 'text-xl' : 'text-2xl'}`}>{t.city} {t.name}</span>
+            {opp && <span className="whitespace-nowrap text-xs font-extrabold tracking-wider text-steel">{fmtRecord(opp)}</span>}
             {game.gameType === 1 && <span className="tag">Pre</span>}
           </div>
           <div className="mt-0.5 text-sm font-semibold text-steel">

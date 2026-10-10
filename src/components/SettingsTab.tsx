@@ -13,7 +13,7 @@ const EMOJI = ['🐙', '🦑', '🦈', '🐋', '🐬', '🦀', '🐠', '⚓', '�
 const COLORS = ['#1FB5A8', '#D7263D', '#0B1F3A', '#5B2A86', '#F26419', '#2A9D3B', '#FF4FA3', '#B8860B']
 
 export function SettingsTab() {
-  const { state, dispatch, refreshSchedule, refreshResale, syncStatus, resaleStatus } = useStore()
+  const { state, dispatch, refreshSchedule, refreshResale, refreshStandings, standings, syncStatus, resaleStatus } = useStore()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
   const [newGame, setNewGame] = useState<{ date: string; time: string; opponent: string; promo: string }>({ date: '', time: '19:00', opponent: 'VAN', promo: '' })
@@ -110,18 +110,22 @@ export function SettingsTab() {
               <div className="text-xs font-semibold text-steel">
                 {state.scheduleSource === 'nhl' ? `Start times verified with NHL.com · ${new Date(state.scheduleFetchedAt!).toLocaleString()}` : 'Dates and times from your Ticketmaster account'}
               </div>
+              <div className="text-xs font-semibold text-steel">
+                {standings ? `Records and standings from NHL.com · ${new Date(standings.fetchedAt).toLocaleString()}` : 'Records not loaded yet'}
+              </div>
             </div>
             <button
               disabled={busy}
               onClick={async () => {
                 setBusy(true)
-                const r = await refreshSchedule()
+                const [r, st] = await Promise.all([refreshSchedule(), refreshStandings()])
                 setBusy(false)
-                toast(r === 'ok' ? 'Start times verified with NHL.com' : 'Could not reach the NHL API right now', r === 'ok' ? 'ok' : 'warn')
+                const ok = r === 'ok' && st === 'ok'
+                toast(ok ? 'Times, records and standings refreshed from NHL.com' : 'Could not reach the NHL API right now', ok ? 'ok' : 'warn')
               }}
               className="btn90 sm shrink-0"
             >
-              {busy ? 'Checking…' : '↻ Verify times'}
+              {busy ? 'Checking…' : '↻ Refresh NHL data'}
             </button>
           </div>
           <details className="card90-flat mt-3 p-3 text-sm">

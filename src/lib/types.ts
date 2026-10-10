@@ -73,3 +73,41 @@ export interface AppState {
   trades: Trade[]
   updatedAt: string
 }
+
+/** One team's line in the NHL standings, straight from the public API. */
+export interface TeamRecord {
+  abbrev: string
+  wins: number
+  losses: number
+  otLosses: number
+  points: number
+  gamesPlayed: number
+  division: string
+  divisionRank: number
+  conferenceRank: number
+  wildcardRank: number
+  /** e.g. "W3", "L1", "OT2" */
+  streak: string
+  /** last ten games, W-L-OT */
+  l10: string
+  goalsFor: number
+  goalsAgainst: number
+}
+
+export interface Standings {
+  teams: Record<string, TeamRecord>
+  fetchedAt: string
+}
+
+/** Hand-written scouting report for one game; keyed by `${date}|${opponent}` in src/data/blurbs.ts. */
+export interface GameBlurb {
+  headline: string
+  /** 2–4 sentences: why this game matters right now */
+  story: string
+  /** rivalry / history with the Kraken, if any */
+  rivalry?: string
+  /** players to watch, with a short note each */
+  stars: Array<{ name: string; team: 'SEA' | 'OPP'; note: string }>
+  /** YYYY-MM-DD the blurb was last written or checked */
+  updated: string
+}

@@ -1,5 +1,5 @@
 import { SEASON } from '../data/schedule'
-import type { Game } from './types'
+import type { Game, Standings, TeamRecord } from './types'
 
 interface NhlGame {
   id: number
@@ -64,4 +64,70 @@ export function remapByGame<T>(oldGames: Game[], newGames: Game[], map: Record<s
     if (target) out[target] = val
   }
   return out
+}
+
+interface NhlStandingsRow {
+  teamAbbrev: { default: string }
+  wins: number
+  losses: number
+  otLosses: number
+  points: number
+  gamesPlayed: number
+  divisionName: string
+  divisionSequence: number
+  conferenceSequence: number
+  wildcardSequence: number
+  streakCode?: string
+  streakCount?: number
+  l10Wins: number
+  l10Losses: number
+  l10OtLosses: number
+  goalFor: number
+  goalAgainst: number
+}
+
+/** Fetches today's league-wide standings so the app can show the Kraken's record and every opponent's. */
+export async function fetchStandings(signal?: AbortSignal): Promise<Standings> {
+  const res = await fetch('https://api-web.nhle.com/v1/standings/now', { signal })
+  if (!res.ok) throw new Error(`NHL API ${res.status}`)
+  const json = (await res.json()) as { standings: NhlStandingsRow[] }
+  const teams: Record<string, TeamRecord> = {}
+  for (const r of json.standings) {
+    const abbrev = r.teamAbbrev?.default
+    if (!abbrev) continue
+    teams[abbrev] = {
+      abbrev,
+      wins: r.wins,
+      losses: r.losses,
+      otLosses: r.otLosses,
+      points: r.points,
+      gamesPlayed: r.gamesPlayed,
+      division: r.divisionName,
+      divisionRank: r.divisionSequence,
+      conferenceRank: r.conferenceSequence,
+      wildcardRank: r.wildcardSequence,
+      streak: r.streakCode && r.streakCount ? `${r.streakCode}${r.streakCount}` : '',
+      l10: `${r.l10Wins}-${r.l10Losses}-${r.l10OtLosses}`,
+      goalsFor: r.goalFor,
+      goalsAgainst: r.goalAgainst,
+    }
+  }
+  if (!teams.SEA) throw new Error('NHL standings missing SEA')
+  return { teams, fetchedAt: new Date().toISOString() }
+}
+
+export function fmtRecord(r: TeamRecord | undefined): string {
+  return r ? `${r.wins}-${r.losses}-${r.otLosses}` : '—'
+}
+
+const ORD = ['th', 'st', 'nd', 'rd']
+export function ordinal(n: number): string {
+  const v = n % 100
+  return `${n}${ORD[(v - 20) % 10] ?? ORD[v] ?? ORD[0]}`
+}
+
+/** "4th Pacific · 4 pts" or "WC1" style standing summary. */
+export function fmtStanding(r: TeamRecord | undefined): string {
+  if (!r) return ''
+  return `${ordinal(r.divisionRank)} ${r.division} · ${r.points} pts`
 }

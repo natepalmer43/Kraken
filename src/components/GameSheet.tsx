@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { blurbFor } from '../data/blurbs'
 import { teamInfo } from '../data/teams'
 import { burst } from '../lib/confetti'
 import { useStore } from '../lib/store'
@@ -6,15 +7,19 @@ import type { Game, Owner } from '../lib/types'
 import { fmtDate, fmtMoney, fmtTime, resaleFor, resaleLinks } from '../lib/value'
 import { DayChip } from './GameCard'
 import { OpponentBadge } from './OpponentBadge'
+import { RecordStrip, ScoutingReport } from './ScoutingReport'
 import { Sheet } from './Sheet'
 import { useToast } from './Toast'
 
 export function GameSheet({ game, onClose }: { game: Game | null; onClose: () => void }) {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, standings } = useStore()
   const toast = useToast()
   const [editing, setEditing] = useState(false)
   if (!game) return <Sheet open={false} onClose={onClose}>{null}</Sheet>
   const t = teamInfo(game.opponent)
+  const sea = standings?.teams.SEA
+  const opp = standings?.teams[game.opponent]
+  const blurb = blurbFor(game)
   const a = state.assignments[game.id]
   const ov = state.overrides[game.id] ?? {}
   const r = resaleFor(game, state)
@@ -43,6 +48,8 @@ export function GameSheet({ game, onClose }: { game: Game | null; onClose: () =>
           <div className="mt-1.5"><DayChip game={game} /></div>
         </div>
       </div>
+
+      {(sea || opp) && <div className="mt-4"><RecordStrip sea={sea} opp={opp} opponent={game.opponent} compact /></div>}
 
       <div className="mt-5 grid grid-cols-2 gap-3">
         <button onClick={(e) => choose('p1', e)} className={btn(a?.owner === 'p1')} style={{ background: p1.color, color: '#fff', textShadow: '1px 1px 0 #0a0a0a' }}>{p1.emoji} {p1.name}</button>
@@ -76,6 +83,8 @@ export function GameSheet({ game, onClose }: { game: Game | null; onClose: () =>
         value={a?.note ?? ''}
         onChange={(e) => dispatch({ type: 'note', gameId: game.id, note: e.target.value })}
       />
+
+      {blurb && <div className="mt-5"><ScoutingReport blurb={blurb} opponent={game.opponent} /></div>}
 
       <div className="jumbotron mt-5 p-3">
         <div className="flex items-center justify-between">

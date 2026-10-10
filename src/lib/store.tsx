@@ -1,11 +1,24 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 import { PLAN_DEFAULT_ASSIGNMENTS, PLAN_VERSION, TICKET_PLAN } from '../data/schedule'
-import { fetchKrakenHomeSchedule, remapByGame } from './nhl'
+import { fetchKrakenHomeSchedule, fetchStandings, remapByGame } from './nhl'
 import { SEATGEEK_AVAILABLE, fetchResaleQuotes } from './seatgeek'
 import { SYNC_AVAILABLE, loadBoard, saveBoard, subscribeBoard } from './supabase'
-import type { AppState, Game, GameOverride, Owner, PersonId, ResaleQuote } from './types'
+import type { AppState, Game, GameOverride, Owner, PersonId, ResaleQuote, Standings } from './types'
 
 const STORAGE_KEY = 'release-the-tickets:v1'
+/** Standings are league data, not a decision, so they live outside the shared board. */
+const STANDINGS_KEY = 'release-the-tickets:standings'
+
+function loadStandings(): Standings | null {
+  try {
+    const raw = localStorage.getItem(STANDINGS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Standings
+    return parsed && parsed.teams && parsed.fetchedAt ? parsed : null
+  } catch {
+    return null
+  }
+}
 
 export function initialState(): AppState {
   return {
@@ -157,6 +170,9 @@ interface StoreCtx {
   dispatch: (a: Action) => void
   refreshSchedule: () => Promise<'ok' | 'failed'>
   refreshResale: () => Promise<'ok' | 'failed' | 'unavailable'>
+  /** live NHL standings (Kraken record + every opponent's), or null until the first fetch succeeds */
+  standings: Standings | null
+  refreshStandings: () => Promise<'ok' | 'failed'>
   syncStatus: 'off' | 'connecting' | 'live' | 'error'
   resaleStatus: 'idle' | 'loading' | 'ok' | 'failed'
 }
@@ -164,6 +180,7 @@ interface StoreCtx {
 const Ctx = createContext<StoreCtx | null>(null)
 
 const SIX_HOURS = 6 * 60 * 60 * 1000
+const ONE_HOUR = 60 * 60 * 1000
 
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, undefined, loadLocal)
@@ -171,6 +188,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   stateRef.current = state
   const [syncStatus, setSyncStatus] = useReducer((_: StoreCtx['syncStatus'], n: StoreCtx['syncStatus']) => n, 'off')
   const [resaleStatus, setResaleStatus] = useReducer((_: StoreCtx['resaleStatus'], n: StoreCtx['resaleStatus']) => n, 'idle')
+  const [standings, setStandings] = useReducer((_: Standings | null, n: Standings | null) => n, null, loadStandings)
   const applyingRemote = useRef(false)
 
   useEffect(() => {
@@ -185,6 +203,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     try {
       const games = await fetchKrakenHomeSchedule()
       dispatch({ type: 'setSchedule', games })
+      return 'ok'
+    } catch {
+      return 'failed'
+    }
+  }
+
+  const refreshStandings = async (): Promise<'ok' | 'failed'> => {
+    try {
+      const next = await fetchStandings()
+      setStandings(next)
+      try {
+        localStorage.setItem(STANDINGS_KEY, JSON.stringify(next))
+      } catch {
+        /* storage full or blocked */
+      }
       return 'ok'
     } catch {
       return 'failed'
@@ -210,6 +243,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const schedulePromise = Date.now() - last > SIX_HOURS ? refreshSchedule() : Promise.resolve('ok' as const)
     const newestQuote = Math.max(0, ...Object.values(state.resale).map((q) => Date.parse(q.fetchedAt)))
     if (Date.now() - newestQuote > SIX_HOURS) void schedulePromise.then(() => refreshResale())
+    const standingsAge = Date.now() - (standings ? Date.parse(standings.fetchedAt) : 0)
+    if (standingsAge > ONE_HOUR) void refreshStandings()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -261,9 +296,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [state, syncStatus])
 
   const value = useMemo<StoreCtx>(
-    () => ({ state, dispatch, refreshSchedule, refreshResale, syncStatus, resaleStatus }),
+    () => ({ state, dispatch, refreshSchedule, refreshResale, standings, refreshStandings, syncStatus, resaleStatus }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [state, syncStatus, resaleStatus],
+    [state, standings, syncStatus, resaleStatus],
   )
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

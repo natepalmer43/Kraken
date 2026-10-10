@@ -8,6 +8,7 @@ import { SettingsTab } from './components/SettingsTab'
 import { Sheet } from './components/Sheet'
 import { useToast } from './components/Toast'
 import { SEASON_LABEL } from './data/schedule'
+import { fmtRecord, fmtStanding } from './lib/nhl'
 import { useStore } from './lib/store'
 import { clearShareHash, readShareFromUrl } from './lib/share'
 import type { AppState } from './lib/types'
@@ -25,9 +26,10 @@ const TABS: Array<{ id: Tab; label: string; short: string }> = [
 const ICON = `${import.meta.env.BASE_URL}kraken.svg`
 
 export default function App() {
-  const { state, dispatch } = useStore()
+  const { state, dispatch, standings } = useStore()
   const toast = useToast()
   const [tab, setTab] = useState<Tab>('home')
+  const sea = standings?.teams.SEA
   const [incoming, setIncoming] = useState<AppState | null>(() => readShareFromUrl())
 
   const acceptShare = () => {
@@ -62,9 +64,9 @@ export default function App() {
                 {state.people[0].emoji} {state.people[0].name.toUpperCase()} &amp; {state.people[1].emoji} {state.people[1].name.toUpperCase()} · {SEASON_LABEL}
               </div>
             </div>
-            <div className="hidden text-right sm:block">
-              <div className="pixel text-[8px] text-silver/70">SEATTLE</div>
-              <div className="led red text-sm">KRAKEN</div>
+            <div className="shrink-0 text-right">
+              <div className="pixel text-[8px] text-silver/70">{sea ? fmtStanding(sea).toUpperCase() : 'SEATTLE'}</div>
+              <div className="led red text-sm sm:text-base">{sea ? fmtRecord(sea) : 'KRAKEN'}</div>
             </div>
           </div>
           <div className="mt-3 overflow-hidden border-t border-silver/20 pt-2">
